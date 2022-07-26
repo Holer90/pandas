@@ -26,6 +26,10 @@ from pandas.core.indexes.api import Index
 from pandas.io.formats import format as fmt
 from pandas.io.formats.printing import pprint_thing
 
+# todo: is there a way to fix circular import? maybe from pandas.core.series import Series??
+#from pandas.core.frame import Series
+
+
 if TYPE_CHECKING:
     from pandas.core.frame import (
         DataFrame,
@@ -236,7 +240,7 @@ series_see_also_sub = dedent(
 )
 
 
-series_sub_kwargs = {
+series_sub_kwargs_glimpse = {
     "klass": "Series",
     "type_sub": "",
     "max_cols_sub": "",
@@ -324,63 +328,51 @@ def _put_str(s: str | Dtype, space: int) -> str:
     """
     return str(s)[:space].ljust(space)
 
-
-def _sizeof_fmt(num: int | float, size_qualifier: str) -> str:
+def _trim_str(s: str, length: int) -> str:
     """
-    Return size in human readable format.
+    Crop a string from the right and adding '...' if its too long (ignoring spaces)
 
     Parameters
     ----------
-    num : int
-        Size in bytes.
-    size_qualifier : str
-        Either empty, or '+' (if lower bound).
+    s : str
+        String to be formatted.
+    length : int
+        Length to force string to be of.
 
     Returns
     -------
     str
-        Size in human readable format.
+        String of length no longer than desired length
 
     Examples
     --------
-    >>> _sizeof_fmt(23028, '')
-    '22.5 KB'
-
-    >>> _sizeof_fmt(23028, '+')
-    '22.5+ KB'
+    >>> pd.io.formats.info._trim_str("red pandas", 10)
+    'red pandas'
+    >>> pd.io.formats.info._trim_str("red pandas", 8)
+    'red pa ...'
+    >>> pd.io.formats.info._trim_str("pandas    ", 8)
+    'pandas    '
     """
-    for x in ["bytes", "KB", "MB", "GB", "TB"]:
-        if num < 1024.0:
-            return f"{num:3.1f}{size_qualifier} {x}"
-        num /= 1024.0
-    return f"{num:3.1f}{size_qualifier} PB"
+    if len(str(s)) > length:
+        if s[length-4:length] == "    ":
+            return str(s[:length])
+        else:
+            return f"{s[:length - 4]} ..."
+    else:
+        return str(s)
 
 
-def _initialize_memory_usage(
-    memory_usage: bool | str | None = None,
-) -> bool | str:
-    """Get memory usage based on inputs and display options."""
-    if memory_usage is None:
-        memory_usage = get_option("display.memory_usage")
-    return memory_usage
-
-
-class BaseGlimpse(ABC):
+class BaseGlimpseInfo(ABC):
     """
-    Base class for DataFrameInfo and SeriesInfo.
+    Base class for DataFrameGlimpseInfo and SeriesGlimpseInfo.
 
     Parameters
     ----------
     data : DataFrame or Series
         Either dataframe or series.
-    memory_usage : bool or str, optional
-        If "deep", introspect the data deeply by interrogating object dtypes
-        for system-level memory consumption, and include it in the returned
-        values.
     """
 
     data: DataFrame | Series
-    memory_usage: bool | str
 
     @property
     @abstractmethod
@@ -396,74 +388,53 @@ class BaseGlimpse(ABC):
 
     @property
     @abstractmethod
-    def dtype_counts(self) -> Mapping[str, int]:
-        """Mapping dtype - number of counts."""
-
-    @property
-    @abstractmethod
     def non_null_counts(self) -> Sequence[int]:
         """Sequence of non-null counts for all columns or column (if series)."""
 
     @property
     @abstractmethod
-    def memory_usage_bytes(self) -> int:
-        """
-        Memory usage in bytes.
-
-        Returns
-        -------
-        memory_usage_bytes : int
-            Object's total memory usage in bytes.
-        """
+    def null_counts(self) -> Sequence[int]:
+        """Sequence of null counts for all columns or column (if series)."""
 
     @property
-    def memory_usage_string(self) -> str:
-        """Memory usage in a form of human readable string."""
-        return f"{_sizeof_fmt(self.memory_usage_bytes, self.size_qualifier)}\n"
+    @abstractmethod
+    def nunique_counts(self) -> Sequence[int]:
+        """Sequence of counts of unique element for all columns or column (if series)."""
 
     @property
-    def size_qualifier(self) -> str:
-        size_qualifier = ""
-        if self.memory_usage:
-            if self.memory_usage != "deep":
-                # size_qualifier is just a best effort; not guaranteed to catch
-                # all cases (e.g., it misses categorical data even with object
-                # categories)
-                if (
-                    "object" in self.dtype_counts
-                    or self.data.index._is_memory_usage_qualified()
-                ):
-                    size_qualifier = "+"
-        return size_qualifier
+    @abstractmethod
+    def value_strings(self) -> Sequence[str]:
+        """Sequence of string representing the unique values."""
+
+    @property
+    @abstractmethod
+    def unique_value_strings(self) -> Sequence[str]:
+        """Sequence of string representing the values."""
 
     @abstractmethod
     def render(
         self,
         *,
         buf: WriteBuffer[str] | None,
-        max_cols: int | None,
-        verbose: bool | None,
-        show_counts: bool | None,
+        dtype: bool | None,
+        notna: bool | None,
+        isna: bool | None,
+        nunique: bool | None,
+        unique: bool | None,
     ) -> None:
         pass
 
 
-class DataFrameGlimpse(BaseGlimpse):
+class DataFrameGlimpseInfo(BaseGlimpseInfo):
     """
-    Class storing dataframe-specific info.
+    Class storing dataframe-specific info needed to glimpse.
     """
 
     def __init__(
         self,
         data: DataFrame,
-        memory_usage: bool | str | None = None,
     ) -> None:
         self.data: DataFrame = data
-        self.memory_usage = _initialize_memory_usage(memory_usage)
-
-    @property
-    def dtype_counts(self) -> Mapping[str, int]:
-        return _get_dataframe_dtype_counts(self.data)
 
     @property
     def dtypes(self) -> Iterable[Dtype]:
@@ -500,31 +471,73 @@ class DataFrameGlimpse(BaseGlimpse):
         return self.data.count()
 
     @property
-    def memory_usage_bytes(self) -> int:
-        if self.memory_usage == "deep":
-            deep = True
-        else:
-            deep = False
-        return self.data.memory_usage(index=True, deep=deep).sum()
+    def null_counts(self) -> Sequence[int]:
+        """Sequence of null counts for all columns or column (if series)."""
+        return self.data.isna().sum()
+
+    @property
+    def nunique_counts(self) -> Sequence[int]:
+        """Sequence of counts of unique elements for all columns or column (if series)."""
+        return _get_nunique_without_unhashable_error(self.data)
+
+    @property
+    def value_strings(self) -> Sequence[str]:
+        # Calculate the (worst case) number of elements needed to be included in the values string.
+        # Note: As the 'Column'-column takes up 7 characters and each element takes up at least 3 characters we get.
+
+        # imported here to avoid circular imports from partially imported module.
+        from pandas import Series
+
+        display_width = get_option("display.width")
+        value_strings_max_width = min(display_width - 7, 300)   # todo: is 300 a good value here? (to avoid printing too much?)
+        number_of_elements_to_include = int(1 + value_strings_max_width / 3)
+
+        s = Series(dtype=str)
+        for col in self.ids:
+            s[col] = ', '.join(map(
+                lambda x: pprint_thing(x, quote_strings=True),
+                self.data[col].head(number_of_elements_to_include).to_list()
+            ))[:value_strings_max_width]
+        return s
+
+    @property
+    def unique_value_strings(self) -> Sequence[str]:
+        # imported here to avoid circular imports from partially imported module.
+        from pandas import Series
+
+        display_width = get_option("display.width")
+        value_strings_max_width = min(display_width - 7, 300)   # todo: should we fetch 300 from somewhere?
+
+        s = Series(dtype=str)
+        for col in self.ids:
+            s[col] = ', '.join(map(
+                lambda x: pprint_thing(x, quote_strings=True),
+                self.data[col].unique()
+            ))[:value_strings_max_width]
+        return s
 
     def render(
         self,
         *,
         buf: WriteBuffer[str] | None,
-        max_cols: int | None,
-        verbose: bool | None,
-        show_counts: bool | None,
+        dtype: bool | None,
+        notna: bool | None,
+        isna: bool | None,
+        nunique: bool | None,
+        unique: bool | None,
     ) -> None:
         printer = DataFrameGlimpsePrinter(
             info=self,
-            max_cols=max_cols,
-            verbose=verbose,
-            show_counts=show_counts,
+            include_dtype=dtype,
+            include_non_null_count=notna,
+            include_null_count=isna,
+            include_nunique=nunique,
+            unique_values=unique
         )
         printer.to_buffer(buf)
 
 
-class SeriesGlimpse(BaseGlimpse):
+class SeriesGlimpseInfo(BaseGlimpseInfo):
     """
     Class storing series-specific info.
     """
@@ -532,64 +545,88 @@ class SeriesGlimpse(BaseGlimpse):
     def __init__(
         self,
         data: Series,
-        memory_usage: bool | str | None = None,
     ) -> None:
         self.data: Series = data
-        self.memory_usage = _initialize_memory_usage(memory_usage)
 
     def render(
-        self,
-        *,
-        buf: WriteBuffer[str] | None = None,
-        max_cols: int | None = None,
-        verbose: bool | None = None,
-        show_counts: bool | None = None,
+            self,
+            *,
+            buf: WriteBuffer[str] | None,
+            dtype: bool | None,
+            notna: bool | None,
+            isna: bool | None,
+            nunique: bool | None,
+            unique: bool | None,
     ) -> None:
-        if max_cols is not None:
-            raise ValueError(
-                "Argument `max_cols` can only be passed "
-                "in DataFrame.info, not Series.info"
-            )
         printer = SeriesGlimpsePrinter(
             info=self,
-            verbose=verbose,
-            show_counts=show_counts,
+            include_dtype=dtype,
+            include_non_null_count=notna,
+            include_null_count=isna,
+            include_nunique=nunique,
+            unique_values=unique
         )
         printer.to_buffer(buf)
-
-    @property
-    def non_null_counts(self) -> Sequence[int]:
-        return [self.data.count()]
 
     @property
     def dtypes(self) -> Iterable[Dtype]:
         return [self.data.dtypes]
 
     @property
-    def dtype_counts(self) -> Mapping[str, int]:
-        from pandas.core.frame import DataFrame
-
-        return _get_dataframe_dtype_counts(DataFrame(self.data))
+    def non_null_counts(self) -> Sequence[int]:
+        return [self.data.count()]
 
     @property
-    def memory_usage_bytes(self) -> int:
-        """Memory usage in bytes.
+    def null_counts(self) -> Sequence[int]:
+        return [self.data.isna().sum()]
 
-        Returns
-        -------
-        memory_usage_bytes : int
-            Object's total memory usage in bytes.
-        """
-        if self.memory_usage == "deep":
-            deep = True
-        else:
-            deep = False
-        return self.data.memory_usage(index=True, deep=deep)
+    @property
+    def nunique_counts(self) -> Sequence[int]:
+        # todo: this looks shady - reconsider??
+        try:
+            return [self.data.nunique()]
+        except:
+            return ['unhashable']
+        #return [self.data.nunique()]
+
+    @property
+    def value_strings(self) -> Sequence[str]:
+        # Calculate the (worst case) number of elements needed to be included in the values string.
+        # Note: As the 'Column'-column takes up 7 characters and each element takes up at least 3 characters we get.
+
+
+        # imported here to avoid circular imports from partially imported module.
+        from pandas import Series
+
+        display_width = get_option("display.width")
+        value_strings_max_width = min(display_width - 7, 300)  # todo: is 300 a good value here? (to avoid printing too much?)
+        number_of_elements_to_include = int(1 + value_strings_max_width / 3)
+
+        # todo: this feels like a terrible way to do it..
+        s = Series(dtype=str)
+        s[self.data.name] = ', '.join(map(
+                lambda x: pprint_thing(x, quote_strings=True),
+                self.data.head(number_of_elements_to_include).to_list()
+            ))[:value_strings_max_width]
+        return s
+
+    @property
+    def unique_value_strings(self) -> Sequence[str]:
+        from pandas import Series
+        display_width = get_option("display.width")
+        value_strings_max_width = min(display_width - 7, 300)  # todo: should we fetch 300 from somewhere?
+        s = Series(dtype=str)
+        s[self.data.name] = ', '.join(map(
+                lambda x: pprint_thing(x, quote_strings=True),
+                self.data.unique()
+            ))[:value_strings_max_width]
+        return s
+
 
 
 class GlimpsePrinterAbstract:
     """
-    Class for printing dataframe or series info.
+    Class for printing dataframe or series glimpse.
     """
 
     def to_buffer(self, buf: WriteBuffer[str] | None = None) -> None:
@@ -607,83 +644,88 @@ class GlimpsePrinterAbstract:
 
 class DataFrameGlimpsePrinter(GlimpsePrinterAbstract):
     """
-    Class for printing dataframe info.
+    Class for printing dataframe glimpse.
 
     Parameters
     ----------
-    info : DataFrameInfo
-        Instance of DataFrameInfo.
-    max_cols : int, optional
-        When to switch from the verbose to the truncated output.
-    verbose : bool, optional
-        Whether to print the full summary.
-    show_counts : bool, optional
+    info : DataFrameGlimpseInfo
+        Instance of DataFrameGlimpseInfo.
+    include_dtype: bool, optional
+        Whether to show the dtypes.
+    include_non_null_count: bool, optional
         Whether to show the non-null counts.
+    include_null_count: bool, optional
+        Whether to show the null counts.
+    include_nunique: bool, optional
+        Whether to show the number of unique values.
+    unique_values: bool, optional
+        Whether to show the unique values.
     """
 
     def __init__(
         self,
-        info: DataFrameGlimpse,
-        max_cols: int | None = None,
-        verbose: bool | None = None,
-        show_counts: bool | None = None,
+        info: DataFrameGlimpseInfo,
+        include_dtype: bool | None = None,
+        include_non_null_count: bool | None = None,
+        include_null_count: bool | None = None,
+        include_nunique: bool | None = None,
+        unique_values: bool | None = None,
     ) -> None:
         self.info = info
         self.data = info.data
-        self.verbose = verbose
-        self.max_cols = self._initialize_max_cols(max_cols)
-        self.show_counts = self._initialize_show_counts(show_counts)
-
-    @property
-    def max_rows(self) -> int:
-        """Maximum info rows to be displayed."""
-        return get_option("display.max_info_rows", len(self.data) + 1)
-
-    @property
-    def exceeds_info_cols(self) -> bool:
-        """Check if number of columns to be summarized does not exceed maximum."""
-        return bool(self.col_count > self.max_cols)
-
-    @property
-    def exceeds_info_rows(self) -> bool:
-        """Check if number of rows to be summarized does not exceed maximum."""
-        return bool(len(self.data) > self.max_rows)
+        self.include_dtype = self._initialize_dtype(include_dtype)
+        self.include_non_null_count = self._initialize_non_null_count(include_non_null_count)
+        self.include_null_count = self._initialize_null_count(include_null_count)
+        self.include_nunique = self._initialize_nunique(include_nunique)
+        self.unique_values = self._initialize_unique_values(unique_values)
 
     @property
     def col_count(self) -> int:
         """Number of columns to be summarized."""
         return self.info.col_count
 
-    def _initialize_max_cols(self, max_cols: int | None) -> int:
-        if max_cols is None:
-            return get_option("display.max_info_columns", self.col_count + 1)
-        return max_cols
-
-    def _initialize_show_counts(self, show_counts: bool | None) -> bool:
-        if show_counts is None:
-            return bool(not self.exceeds_info_cols and not self.exceeds_info_rows)
+    def _initialize_dtype(self, include_dtype: bool | None) -> bool:
+        if include_dtype is None:
+            return True
         else:
-            return show_counts
+            return include_dtype
+
+    def _initialize_non_null_count(self, include_non_null_count: bool | None) -> bool:
+        if include_non_null_count is None:
+            return False
+        else:
+            return include_non_null_count
+
+    def _initialize_null_count(self, include_null_count: bool | None) -> bool:
+        if include_null_count is None:
+            return False
+        else:
+            return include_null_count
+
+    def _initialize_nunique(self, include_nunique: bool | None) -> bool:
+        if include_nunique is None:
+            return False
+        else:
+            return include_nunique
+
+    def _initialize_unique_values(self, unique_values: bool | None) -> bool:
+        if unique_values is None:
+            return False
+        else:
+            return unique_values
 
     def _create_table_builder(self) -> DataFrameTableBuilder:
         """
-        Create instance of table builder based on verbosity and display settings.
+        Create instance of table builder based on desired columns in the glimpse.
         """
-        if self.verbose:
-            return DataFrameTableBuilderVerbose(
-                info=self.info,
-                with_counts=self.show_counts,
-            )
-        elif self.verbose is False:  # specifically set to False, not necessarily None
-            return DataFrameTableBuilderNonVerbose(info=self.info)
-        else:
-            if self.exceeds_info_cols:
-                return DataFrameTableBuilderNonVerbose(info=self.info)
-            else:
-                return DataFrameTableBuilderVerbose(
-                    info=self.info,
-                    with_counts=self.show_counts,
-                )
+        return DataFrameTableBuilder(
+            info=self.info,
+            include_dtype=self.include_dtype,
+            include_non_null_count=self.include_non_null_count,
+            include_null_count=self.include_null_count,
+            include_nunique=self.include_nunique,
+            unique_values=self.unique_values,
+        )
 
 
 class SeriesGlimpsePrinter(GlimpsePrinterAbstract):
@@ -691,42 +733,79 @@ class SeriesGlimpsePrinter(GlimpsePrinterAbstract):
 
     Parameters
     ----------
-    info : SeriesInfo
-        Instance of SeriesInfo.
-    verbose : bool, optional
-        Whether to print the full summary.
-    show_counts : bool, optional
+    info : SeriesGlimpseInfo
+        Instance of SeriesGlimpseInfo.
+    include_dtype: bool, optional
+        Whether to show the dtypes.
+    include_non_null_count: bool, optional
         Whether to show the non-null counts.
+    include_null_count: bool, optional
+        Whether to show the null counts.
+    include_nunique: bool, optional
+        Whether to show the number of unique values.
+    unique_values: bool, optional
+        Whether to show the unique values.
     """
 
     def __init__(
         self,
-        info: SeriesGlimpse,
-        verbose: bool | None = None,
-        show_counts: bool | None = None,
+        info: SeriesGlimpseInfo,
+        include_dtype: bool | None = None,
+        include_non_null_count: bool | None = None,
+        include_null_count: bool | None = None,
+        include_nunique: bool | None = None,
+        unique_values: bool | None = None,
     ) -> None:
         self.info = info
         self.data = info.data
-        self.verbose = verbose
-        self.show_counts = self._initialize_show_counts(show_counts)
+        self.include_dtype = self._initialize_dtype(include_dtype)
+        self.include_non_null_count = self._initialize_non_null_count(include_non_null_count)
+        self.include_null_count = self._initialize_null_count(include_null_count)
+        self.include_nunique = self._initialize_nunique(include_nunique)
+        self.unique_values = self._initialize_unique_values(unique_values)
+
+    def _initialize_dtype(self, include_dtype: bool | None) -> bool:
+        if include_dtype is None:
+            return True
+        else:
+            return include_dtype
+
+    def _initialize_non_null_count(self, include_non_null_count: bool | None) -> bool:
+        if include_non_null_count is None:
+            return False
+        else:
+            return include_non_null_count
+
+    def _initialize_null_count(self, include_null_count: bool | None) -> bool:
+        if include_null_count is None:
+            return False
+        else:
+            return include_null_count
+
+    def _initialize_nunique(self, include_nunique: bool | None) -> bool:
+        if include_nunique is None:
+            return False
+        else:
+            return include_nunique
+
+    def _initialize_unique_values(self, unique_values: bool | None) -> bool:
+        if unique_values is None:
+            return False
+        else:
+            return unique_values
 
     def _create_table_builder(self) -> SeriesTableBuilder:
         """
-        Create instance of table builder based on verbosity.
+        Create instance of table builder based on desired columns in the glimpse.
         """
-        if self.verbose or self.verbose is None:
-            return SeriesTableBuilderVerbose(
-                info=self.info,
-                with_counts=self.show_counts,
-            )
-        else:
-            return SeriesTableBuilderNonVerbose(info=self.info)
-
-    def _initialize_show_counts(self, show_counts: bool | None) -> bool:
-        if show_counts is None:
-            return True
-        else:
-            return show_counts
+        return SeriesTableBuilder(
+            info=self.info,
+            include_dtype=self.include_dtype,
+            include_non_null_count=self.include_non_null_count,
+            include_null_count=self.include_null_count,
+            include_nunique=self.include_nunique,
+            unique_values=self.unique_values,
+        )
 
 
 class TableBuilderAbstract(ABC):
@@ -735,7 +814,7 @@ class TableBuilderAbstract(ABC):
     """
 
     _lines: list[str]
-    info: BaseGlimpse
+    info: BaseGlimpseInfo
 
     @abstractmethod
     def get_lines(self) -> list[str]:
@@ -751,52 +830,38 @@ class TableBuilderAbstract(ABC):
         return self.info.dtypes
 
     @property
-    def dtype_counts(self) -> Mapping[str, int]:
-        """Mapping dtype - number of counts."""
-        return self.info.dtype_counts
-
-    @property
-    def display_memory_usage(self) -> bool:
-        """Whether to display memory usage."""
-        return bool(self.info.memory_usage)
-
-    @property
-    def memory_usage_string(self) -> str:
-        """Memory usage string with proper size qualifier."""
-        return self.info.memory_usage_string
-
-    @property
     def non_null_counts(self) -> Sequence[int]:
         return self.info.non_null_counts
 
-    def add_object_type_line(self) -> None:
-        """Add line with string representation of dataframe to the table."""
-        self._lines.append(str(type(self.data)))
+    @property
+    def null_counts(self) -> Sequence[int]:
+        return self.info.null_counts
 
-    def add_index_range_line(self) -> None:
-        """Add line with range of indices to the table."""
-        self._lines.append(self.data.index._summary())
+    @property
+    def nunique_counts(self) -> Sequence[int]:
+        return self.info.nunique_counts
 
-    def add_dtypes_line(self) -> None:
-        """Add summary line with dtypes present in dataframe."""
-        collected_dtypes = [
-            f"{key}({val:d})" for key, val in sorted(self.dtype_counts.items())
-        ]
-        self._lines.append(f"dtypes: {', '.join(collected_dtypes)}")
+    @property
+    def value_strings(self) -> Iterable[str]:
+        return self.info.value_strings
+
+    @property
+    def unique_value_strings(self) -> Iterable[str]:
+        return self.info.unique_value_strings
 
 
-class DataFrameTableBuilder(TableBuilderAbstract):
+class DataFrameTableBuilderAbstract(TableBuilderAbstract):
     """
     Abstract builder for dataframe info table.
 
     Parameters
     ----------
-    info : DataFrameInfo.
-        Instance of DataFrameInfo.
+    info : DataFrameGlimpseInfo.
+        Instance of DataFrameGlimpseInfo.
     """
 
-    def __init__(self, *, info: DataFrameInfo) -> None:
-        self.info: DataFrameInfo = info
+    def __init__(self, *, info: DataFrameGlimpseInfo) -> None:
+        self.info: DataFrameGlimpseInfo = info
 
     def get_lines(self) -> list[str]:
         self._lines = []
@@ -808,8 +873,7 @@ class DataFrameTableBuilder(TableBuilderAbstract):
 
     def _fill_empty_info(self) -> None:
         """Add lines to the info table, pertaining to empty dataframe."""
-        self.add_object_type_line()
-        self.add_index_range_line()
+        self.add_summary_line()
         self._lines.append(f"Empty {type(self.data).__name__}\n")
 
     @abstractmethod
@@ -831,43 +895,29 @@ class DataFrameTableBuilder(TableBuilderAbstract):
         """Number of dataframe columns to be summarized."""
         return self.info.col_count
 
-    def add_memory_usage_line(self) -> None:
-        """Add line containing memory usage."""
-        self._lines.append(f"memory usage: {self.memory_usage_string}")
+    def add_summary_line(self) -> None:
+        """Add line containing type, rows and columns."""
+        self._lines.append(f"{type(self.data)} with {len(self.data)} rows and {len(self.data.columns)} columns.")
 
 
-class DataFrameTableBuilderNonVerbose(DataFrameTableBuilder):
+class TableBuilderMixin(TableBuilderAbstract):
     """
-    Dataframe info table builder for non-verbose output.
-    """
-
-    def _fill_non_empty_info(self) -> None:
-        """Add lines to the info table, pertaining to non-empty dataframe."""
-        self.add_object_type_line()
-        self.add_index_range_line()
-        self.add_columns_summary_line()
-        self.add_dtypes_line()
-        if self.display_memory_usage:
-            self.add_memory_usage_line()
-
-    def add_columns_summary_line(self) -> None:
-        self._lines.append(self.ids._summary(name="Columns"))
-
-
-class TableBuilderVerboseMixin(TableBuilderAbstract):
-    """
-    Mixin for verbose info output.
+    Mixin for glimpse output.
     """
 
     SPACING: str = " " * 2
     strrows: Sequence[Sequence[str]]
     gross_column_widths: Sequence[int]
-    with_counts: bool
+    include_dtype: bool
+    include_non_null_count: bool
+    include_null_count: bool
+    include_nunique: bool
+    unique_values: bool
 
     @property
     @abstractmethod
     def headers(self) -> Sequence[str]:
-        """Headers names of the columns in verbose table."""
+        """Headers names of the columns in table."""
 
     @property
     def header_column_widths(self) -> Sequence[int]:
@@ -887,24 +937,14 @@ class TableBuilderVerboseMixin(TableBuilderAbstract):
         strcols: Sequence[Sequence[str]] = list(zip(*self.strrows))
         return [max(len(x) for x in col) for col in strcols]
 
+    @abstractmethod
     def _gen_rows(self) -> Iterator[Sequence[str]]:
         """
         Generator function yielding rows content.
 
         Each element represents a row comprising a sequence of strings.
         """
-        if self.with_counts:
-            return self._gen_rows_with_counts()
-        else:
-            return self._gen_rows_without_counts()
-
-    @abstractmethod
-    def _gen_rows_with_counts(self) -> Iterator[Sequence[str]]:
-        """Iterator with string representation of body data with counts."""
-
-    @abstractmethod
-    def _gen_rows_without_counts(self) -> Iterator[Sequence[str]]:
-        """Iterator with string representation of body data without counts."""
+        # TODO: Move _gen_rows() and headers() to here as they are the same!
 
     def add_header_line(self) -> None:
         header_line = self.SPACING.join(
@@ -927,6 +967,8 @@ class TableBuilderVerboseMixin(TableBuilderAbstract):
         self._lines.append(separator_line)
 
     def add_body_lines(self) -> None:
+        # todo: where should we get 300 from???
+        trim_width = min(get_option("display.width"), 300)
         for row in self.strrows:
             body_line = self.SPACING.join(
                 [
@@ -934,78 +976,135 @@ class TableBuilderVerboseMixin(TableBuilderAbstract):
                     for col, gross_colwidth in zip(row, self.gross_column_widths)
                 ]
             )
+            body_line = _trim_str(body_line, trim_width)
             self._lines.append(body_line)
-
-    def _gen_non_null_counts(self) -> Iterator[str]:
-        """Iterator with string representation of non-null counts."""
-        for count in self.non_null_counts:
-            yield f"{count} non-null"
 
     def _gen_dtypes(self) -> Iterator[str]:
         """Iterator with string representation of column dtypes."""
         for dtype in self.dtypes:
             yield pprint_thing(dtype)
 
+    def _gen_non_null_counts(self) -> Iterator[str]:
+        """Iterator with string representation of non-null counts."""
+        for count in self.non_null_counts:
+            yield f"{count} non-null"
 
-class DataFrameTableBuilderVerbose(DataFrameTableBuilder, TableBuilderVerboseMixin):
+    def _gen_null_counts(self) -> Iterator[str]:
+        """Iterator with string representation of null counts."""
+        for count in self.null_counts:
+            yield f"{count} null"
+
+    def _gen_nunique_counts(self) -> Iterator[str]:
+        """Iterator with string representation of nunique counts."""
+        for n in self.nunique_counts:
+            if isinstance(n, int):
+                yield f"{n} unique"
+            else:
+                yield f"{n}"
+
+    def _gen_value_strings(self) -> Iterator[str]:
+        """Iterator with string representation of the first values in the columns."""
+        for value_string in self.value_strings:
+            yield f"{value_string}"
+
+    def _gen_unique_value_strings(self) -> Iterator[str]:
+        """Iterator with string representation of the unique values in the columns."""
+        for unique_value_string in self.unique_value_strings:
+            yield f"{unique_value_string}"
+
+
+class DataFrameTableBuilder(DataFrameTableBuilderAbstract, TableBuilderMixin):
     """
-    Dataframe info table builder for verbose output.
+    Dataframe glimpse table builder.
     """
 
     def __init__(
         self,
         *,
-        info: DataFrameGlimpse,
-        with_counts: bool,
+        info: DataFrameGlimpseInfo,
+        include_dtype: bool,
+        include_non_null_count: bool,
+        include_null_count: bool,
+        include_nunique: bool,
+        unique_values: bool
     ) -> None:
         self.info = info
-        self.with_counts = with_counts
+        self.include_dtype = include_dtype
+        self.include_non_null_count = include_non_null_count
+        self.include_null_count = include_null_count
+        self.include_nunique = include_nunique
+        self.unique_values = unique_values
         self.strrows: Sequence[Sequence[str]] = list(self._gen_rows())
         self.gross_column_widths: Sequence[int] = self._get_gross_column_widths()
 
     def _fill_non_empty_info(self) -> None:
         """Add lines to the info table, pertaining to non-empty dataframe."""
-        self.add_object_type_line()
-        self.add_index_range_line()
-        self.add_columns_summary_line()
+        self.add_summary_line()
         self.add_header_line()
         self.add_separator_line()
         self.add_body_lines()
-        self.add_dtypes_line()
-        if self.display_memory_usage:
-            self.add_memory_usage_line()
+        self._lines.append("")
 
     @property
     def headers(self) -> Sequence[str]:
-        """Headers names of the columns in verbose table."""
-        if self.with_counts:
-            return [" # ", "Column", "Non-Null Count", "Dtype"]
-        return [" # ", "Column", "Dtype"]
+        """Headers names of the columns in table."""
+        header_list = ["Column"]
 
-    def add_columns_summary_line(self) -> None:
-        self._lines.append(f"Data columns (total {self.col_count} columns):")
+        # Dtype
+        if self.include_dtype is True:
+            header_list.append("Dtype")
 
-    def _gen_rows_without_counts(self) -> Iterator[Sequence[str]]:
-        """Iterator with string representation of body data without counts."""
+        # Non-null count
+        if self.include_non_null_count is True:
+            header_list.append("Non-null")
+
+        # Null count
+        if self.include_null_count is True:
+            header_list.append("Null")
+
+        # N-unique
+        if self.include_nunique is True:
+            header_list.append("N-unique")
+
+        # Unique values
+        if self.unique_values is True:
+            header_list.append("Unique values")
+        else:
+            header_list.append("Values")
+
+        return header_list
+
+    def _gen_rows(self) -> Iterator[Sequence[str]]:
+        to_include = list()
+
+        # Columns
+        to_include.append(self._gen_columns())
+
+        # Dtype
+        if self.include_dtype is True:
+            to_include.append(self._gen_dtypes())
+
+        # Non-null count
+        if self.include_non_null_count is True:
+            to_include.append(self._gen_non_null_counts())
+
+        # Null count
+        if self.include_null_count is True:
+            to_include.append(self._gen_null_counts())
+
+        # N-unique
+        if self.include_nunique is True:
+            to_include.append(self._gen_nunique_counts())
+
+        # Values
+        if self.unique_values is True:
+            to_include.append(self._gen_unique_value_strings())
+        else:
+            to_include.append(self._gen_value_strings())
+
         yield from zip(
-            self._gen_line_numbers(),
-            self._gen_columns(),
-            self._gen_dtypes(),
+            *to_include
         )
-
-    def _gen_rows_with_counts(self) -> Iterator[Sequence[str]]:
-        """Iterator with string representation of body data with counts."""
-        yield from zip(
-            self._gen_line_numbers(),
-            self._gen_columns(),
-            self._gen_non_null_counts(),
-            self._gen_dtypes(),
-        )
-
-    def _gen_line_numbers(self) -> Iterator[str]:
-        """Iterator with string representation of column numbers."""
-        for i, _ in enumerate(self.ids):
-            yield f" {i}"
 
     def _gen_columns(self) -> Iterator[str]:
         """Iterator with string representation of column names."""
@@ -1013,18 +1112,18 @@ class DataFrameTableBuilderVerbose(DataFrameTableBuilder, TableBuilderVerboseMix
             yield pprint_thing(col)
 
 
-class SeriesTableBuilder(TableBuilderAbstract):
+class SeriesTableBuilderAbstract(TableBuilderAbstract):
     """
     Abstract builder for series info table.
 
     Parameters
     ----------
-    info : SeriesInfo.
-        Instance of SeriesInfo.
+    info : SeriesGlimpseInfo.
+        Instance of SeriesGlimpseInfo.
     """
 
-    def __init__(self, *, info: SeriesGlimpse) -> None:
-        self.info: SeriesGlimpse = info
+    def __init__(self, *, info: SeriesGlimpseInfo) -> None:
+        self.info: SeriesGlimpseInfo = info
 
     def get_lines(self) -> list[str]:
         self._lines = []
@@ -1036,82 +1135,134 @@ class SeriesTableBuilder(TableBuilderAbstract):
         """Series."""
         return self.info.data
 
-    def add_memory_usage_line(self) -> None:
-        """Add line containing memory usage."""
-        self._lines.append(f"memory usage: {self.memory_usage_string}")
-
     @abstractmethod
     def _fill_non_empty_info(self) -> None:
         """Add lines to the info table, pertaining to non-empty series."""
 
 
-class SeriesTableBuilderNonVerbose(SeriesTableBuilder):
+class SeriesTableBuilder(SeriesTableBuilderAbstract, TableBuilderMixin):
     """
-    Series info table builder for non-verbose output.
-    """
-
-    def _fill_non_empty_info(self) -> None:
-        """Add lines to the info table, pertaining to non-empty series."""
-        self.add_object_type_line()
-        self.add_index_range_line()
-        self.add_dtypes_line()
-        if self.display_memory_usage:
-            self.add_memory_usage_line()
-
-
-class SeriesTableBuilderVerbose(SeriesTableBuilder, TableBuilderVerboseMixin):
-    """
-    Series info table builder for verbose output.
+    Series info table builder.
     """
 
     def __init__(
         self,
         *,
-        info: SeriesGlimpse,
-        with_counts: bool,
+        info: SeriesGlimpseInfo,
+        include_dtype: bool,
+        include_non_null_count: bool,
+        include_null_count: bool,
+        include_nunique: bool,
+        unique_values: bool
     ) -> None:
         self.info = info
-        self.with_counts = with_counts
+        self.include_dtype = include_dtype
+        self.include_non_null_count = include_non_null_count
+        self.include_null_count = include_null_count
+        self.include_nunique = include_nunique
+        self.unique_values = unique_values
         self.strrows: Sequence[Sequence[str]] = list(self._gen_rows())
         self.gross_column_widths: Sequence[int] = self._get_gross_column_widths()
 
     def _fill_non_empty_info(self) -> None:
         """Add lines to the info table, pertaining to non-empty series."""
-        self.add_object_type_line()
-        self.add_index_range_line()
         self.add_series_name_line()
         self.add_header_line()
         self.add_separator_line()
         self.add_body_lines()
-        self.add_dtypes_line()
-        if self.display_memory_usage:
-            self.add_memory_usage_line()
 
     def add_series_name_line(self) -> None:
         self._lines.append(f"Series name: {self.data.name}")
 
     @property
     def headers(self) -> Sequence[str]:
-        """Headers names of the columns in verbose table."""
-        if self.with_counts:
-            return ["Non-Null Count", "Dtype"]
-        return ["Dtype"]
+        """Headers names of the columns in table."""
+        header_list = ["Name"]
 
-    def _gen_rows_without_counts(self) -> Iterator[Sequence[str]]:
-        """Iterator with string representation of body data without counts."""
-        yield from self._gen_dtypes()
+        # Dtype
+        if self.include_dtype is True:
+            header_list.append("Dtype")
 
-    def _gen_rows_with_counts(self) -> Iterator[Sequence[str]]:
-        """Iterator with string representation of body data with counts."""
+        # Non-null count
+        if self.include_non_null_count is True:
+            header_list.append("Non-null")
+
+        # Null count
+        if self.include_null_count is True:
+            header_list.append("Null")
+
+        # N-unique
+        if self.include_nunique is True:
+            header_list.append("N-unique")
+
+        # Unique values
+        if self.unique_values is True:
+            header_list.append("Unique values")
+        else:
+            header_list.append("Values")
+
+        return header_list
+
+    def _gen_rows(self) -> Iterator[Sequence[str]]:
+        to_include = list()
+
+        # Name
+        to_include.append(self._gen_name())
+
+        # Dtype
+        if self.include_dtype is True:
+            to_include.append(self._gen_dtypes())
+
+        # Non-null count
+        if self.include_non_null_count is True:
+            to_include.append(self._gen_non_null_counts())
+
+        # Null count
+        if self.include_null_count is True:
+            to_include.append(self._gen_null_counts())
+
+        # N-unique
+        if self.include_nunique is True:
+            to_include.append(self._gen_nunique_counts())
+
+        # Values
+        if self.unique_values is True:
+            to_include.append(self._gen_unique_value_strings())
+        else:
+            to_include.append(self._gen_value_strings())
+
         yield from zip(
-            self._gen_non_null_counts(),
-            self._gen_dtypes(),
+            *to_include
         )
 
+    def _gen_name(self) -> Iterator[str]:
+        """Iterator with string representation of series name."""
+        # todo: should this have a for loop?? (or should I remove the other for loops?)
+        yield pprint_thing(self.data.name)
 
-def _get_dataframe_dtype_counts(df: DataFrame) -> Mapping[str, int]:
-    """
-    Create mapping between datatypes and their number of occurrences.
-    """
-    # groupby dtype.name to collect e.g. Categorical columns
-    return df.dtypes.value_counts().groupby(lambda x: x.name).sum()
+
+
+def _get_nunique_without_unhashable_error(df: DataFrame) -> Sequence[int]:
+    # imported here to avoid circular imports from partially imported module.
+    from pandas import Series
+
+    try:
+        s = df.nunique()
+    except:
+        s = Series(dtype=int)
+        for col in df.columns:
+            try:
+                s[col] = df[col].nunique()
+            except:
+                s[col] = 'unhashable'
+
+    return s
+
+# todo: why is glimpse not ending with a newline when info is??
+# todo: how should glimpse handle an empty dataframe/series?
+# todo: should unique_values have a sorting option?
+# todo: should _put_str and _trim_str be merged ? (it would make _trim_str less convoluted)
+# todo: should I make an abbreviated version?
+# todo: series new line after print body
+
+
