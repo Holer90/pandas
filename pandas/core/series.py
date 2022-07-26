@@ -158,6 +158,11 @@ from pandas.io.formats.info import (
     SeriesInfo,
     series_sub_kwargs,
 )
+from pandas.io.formats.glimpse import (
+    GLIMPSE_DOCSTRING,
+    SeriesGlimpseInfo,
+    series_sub_kwargs_glimpse,
+)
 import pandas.plotting
 
 if TYPE_CHECKING:
@@ -5373,6 +5378,29 @@ Keep all original rows and also all original values
             max_cols=max_cols,
             verbose=verbose,
             show_counts=show_counts,
+        )
+
+    @doc(GLIMPSE_DOCSTRING, **series_sub_kwargs_glimpse)
+    def glimpse(
+            self,
+            buf: WriteBuffer[str] | None = None,
+            dtype: bool | None = None,
+            notna: bool | None = None,
+            isna: bool | None = None,
+            nunique: bool | None = None,
+            unique: bool | None = None,
+
+    ) -> None:
+        info = SeriesGlimpseInfo(
+            data=self,
+        )
+        info.render(
+            buf=buf,
+            dtype=dtype,
+            notna=notna,
+            isna=isna,
+            nunique=nunique,
+            unique=unique,
         )
 
     def _replace_single(self, to_replace, method: str, inplace: bool, limit):

@@ -218,7 +218,7 @@ from pandas.io.formats.info import (
 )
 from pandas.io.formats.glimpse import (
     GLIMPSE_DOCSTRING,
-    DataFrameGlimpse,
+    DataFrameGlimpseInfo,
     frame_sub_kwargs_glimpse,
 )
 import pandas.plotting
@@ -3409,34 +3409,27 @@ class DataFrame(NDFrame, OpsMixin):
             show_counts=show_counts,
         )
 
-    @doc(GLIMPSE_DOCSTRING, **frame_sub_kwargs)
+    @doc(GLIMPSE_DOCSTRING, **frame_sub_kwargs_glimpse)
     def glimpse(
             self,
-            verbose: bool | None = None,
             buf: WriteBuffer[str] | None = None,
-            max_cols: int | None = None,
-            memory_usage: bool | str | None = None,
-            show_counts: bool | None = None,
-            null_counts: bool | None = None,
+            dtype: bool | None = None,
+            notna: bool | None = None,
+            isna: bool | None = None,
+            nunique: bool | None = None,
+            unique: bool | None = None,
+
     ) -> None:
-        if null_counts is not None:
-            if show_counts is not None:
-                raise ValueError("null_counts used with show_counts. Use show_counts.")
-            warnings.warn(
-                "null_counts is deprecated. Use show_counts instead",
-                FutureWarning,
-                stacklevel=find_stack_level(),
-            )
-            show_counts = null_counts
-        info = DataFrameGlimpse(
+        info = DataFrameGlimpseInfo(
             data=self,
-            memory_usage=memory_usage,
         )
         info.render(
             buf=buf,
-            max_cols=max_cols,
-            verbose=verbose,
-            show_counts=show_counts,
+            dtype=dtype,
+            notna=notna,
+            isna=isna,
+            nunique=nunique,
+            unique=unique,
         )
 
     def memory_usage(self, index: bool = True, deep: bool = False) -> Series:
