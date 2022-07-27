@@ -3413,23 +3413,26 @@ class DataFrame(NDFrame, OpsMixin):
     def glimpse(
             self,
             buf: WriteBuffer[str] | None = None,
+            line_number: bool | None = None,
             dtype: bool | None = None,
-            notna: bool | None = None,
             isna: bool | None = None,
+            notna: bool | None = None,
             nunique: bool | None = None,
             unique: bool | None = None,
-
+            verbose: bool | None = None,
     ) -> None:
         info = DataFrameGlimpseInfo(
             data=self,
         )
         info.render(
             buf=buf,
+            line_number=line_number,
             dtype=dtype,
-            notna=notna,
             isna=isna,
+            notna=notna,
             nunique=nunique,
             unique=unique,
+            verbose=verbose,
         )
 
     def memory_usage(self, index: bool = True, deep: bool = False) -> Series:

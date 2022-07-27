@@ -5384,23 +5384,31 @@ Keep all original rows and also all original values
     def glimpse(
             self,
             buf: WriteBuffer[str] | None = None,
+            line_number: bool | None = None,
             dtype: bool | None = None,
-            notna: bool | None = None,
             isna: bool | None = None,
+            notna: bool | None = None,
             nunique: bool | None = None,
             unique: bool | None = None,
-
+            verbose: bool | None = None,
     ) -> None:
+        if line_number is not None:
+            warnings.warn(
+                "line_number is only for DataFrames.",
+                UserWarning,
+                stacklevel=find_stack_level(),
+            )
         info = SeriesGlimpseInfo(
             data=self,
         )
         info.render(
             buf=buf,
             dtype=dtype,
-            notna=notna,
             isna=isna,
+            notna=notna,
             nunique=nunique,
             unique=unique,
+            verbose=verbose,
         )
 
     def _replace_single(self, to_replace, method: str, inplace: bool, limit):
