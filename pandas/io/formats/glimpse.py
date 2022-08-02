@@ -136,7 +136,7 @@ series_examples_sub = dedent(
     >>> text_values = ['alpha', 'beta', 'gamma', 'alpha', 'beta', 'gamma']
     >>> s = pd.Series(text_values, index=int_values, name='greek_letters')
 
-    Prints a glimpse the Series with its dtype.
+    Prints a glimpse of the Series with its dtype.
 
     >>> s.glimpse()
     Series (greek_letters) with 6 rows.
@@ -155,7 +155,7 @@ series_unique_examples_sub = dedent(
     >>> text_values = ['alpha', 'beta', 'gamma', 'alpha', 'beta', 'gamma']
     >>> s = pd.Series(text_values, index=int_values, name='greek_letters')
 
-    Prints a glimpse the Series with its dtype and unique values.
+    Prints a glimpse of the Series with its dtype and unique values.
 
     >>> s.glimpse_unique()
     Series (greek_letters) with 6 rows.
@@ -234,8 +234,8 @@ frame_sub_kwargs_glimpse_unique = {
     "unique_sub": "unique values",
     "index_sub": index_sub,
     "unique_values_sub": "",
-    "examples_sub": frame_examples_sub,
-    "see_also_sub": frame_see_also_sub
+    "examples_sub": frame_unique_examples_sub,
+    "see_also_sub": frame_unique_see_also_sub
 }
 
 series_sub_kwargs_glimpse_unique = {
@@ -244,8 +244,8 @@ series_sub_kwargs_glimpse_unique = {
     "unique_sub": "unique values",
     "index_sub": "",
     "unique_values_sub": "",
-    "examples_sub": series_examples_sub,
-    "see_also_sub": series_see_also_sub
+    "examples_sub": series_unique_examples_sub,
+    "see_also_sub": series_unique_see_also_sub
 }
 
 GLIMPSE_DOCSTRING = dedent(
