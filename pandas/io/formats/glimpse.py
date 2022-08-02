@@ -249,7 +249,7 @@ series_sub_kwargs_glimpse_unique = {
 }
 
 GLIMPSE_DOCSTRING = dedent(
-    f"""
+    """
     Print a transposed glimpse of a {klass} with its {unique_sub}.
     
     This method prints a transposed version of a {klass} with
