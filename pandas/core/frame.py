@@ -220,6 +220,7 @@ from pandas.io.formats.glimpse import (
     GLIMPSE_DOCSTRING,
     DataFrameGlimpseInfo,
     frame_sub_kwargs_glimpse,
+    frame_sub_kwargs_glimpse_unique,
 )
 import pandas.plotting
 
@@ -3418,7 +3419,7 @@ class DataFrame(NDFrame, OpsMixin):
             isna: bool | None = None,
             notna: bool | None = None,
             nunique: bool | None = None,
-            unique: bool | None = None,
+            unique_values: bool | None = None,
             verbose: bool | None = None,
             emphasize: bool | None = None,
     ) -> None:
@@ -3432,12 +3433,18 @@ class DataFrame(NDFrame, OpsMixin):
             isna=isna,
             notna=notna,
             nunique=nunique,
-            unique=unique,
+            unique_values=unique_values,
             verbose=verbose,
             emphasize=emphasize,
         )
 
-    @doc(GLIMPSE_DOCSTRING, **frame_sub_kwargs_glimpse)
+    def isnull(self) -> DataFrame:
+        """
+        DataFrame.isnull is an alias for DataFrame.isna.
+        """
+        return self.isna()
+
+    @doc(GLIMPSE_DOCSTRING, **frame_sub_kwargs_glimpse_unique)
     def glimpse_unique(
             self,
             buf: WriteBuffer[str] | None = None,
@@ -3449,17 +3456,18 @@ class DataFrame(NDFrame, OpsMixin):
             verbose: bool | None = None,
             emphasize: bool | None = None,
     ) -> None:
-        info = DataFrameGlimpseInfo(
-            data=self,
-        )
-        info.render(
+        """
+        DataFrame.glimpse_unique is an alias for DataFrame.glimpse which
+        forces unique_values to be true.
+        """
+        self.glimpse(
             buf=buf,
             index=index,
             dtype=dtype,
             isna=isna,
             notna=notna,
             nunique=nunique,
-            unique=True,
+            unique_values=True,
             verbose=verbose,
             emphasize=emphasize,
         )

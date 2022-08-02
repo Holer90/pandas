@@ -162,6 +162,7 @@ from pandas.io.formats.glimpse import (
     GLIMPSE_DOCSTRING,
     SeriesGlimpseInfo,
     series_sub_kwargs_glimpse,
+    series_sub_kwargs_glimpse_unique,
 )
 import pandas.plotting
 
@@ -5389,7 +5390,7 @@ Keep all original rows and also all original values
             isna: bool | None = None,
             notna: bool | None = None,
             nunique: bool | None = None,
-            unique: bool | None = None,
+            unique_values: bool | None = None,
             verbose: bool | None = None,
             emphasize: bool | None = None,
     ) -> None:
@@ -5408,12 +5409,12 @@ Keep all original rows and also all original values
             isna=isna,
             notna=notna,
             nunique=nunique,
-            unique=unique,
+            unique_values=unique_values,
             verbose=verbose,
             emphasize=emphasize,
         )
 
-    @doc(GLIMPSE_DOCSTRING, **series_sub_kwargs_glimpse)
+    @doc(GLIMPSE_DOCSTRING, **series_sub_kwargs_glimpse_unique)
     def glimpse_unique(
             self,
             buf: WriteBuffer[str] | None = None,
@@ -5425,22 +5426,18 @@ Keep all original rows and also all original values
             verbose: bool | None = None,
             emphasize: bool | None = None,
     ) -> None:
-        if index is not None:
-            warnings.warn(
-                "index is only for DataFrames.",
-                UserWarning,
-                stacklevel=find_stack_level(),
-            )
-        info = SeriesGlimpseInfo(
-            data=self,
-        )
-        info.render(
+        """
+        Series.glimpse_unique is an alias for Series.glimpse which
+        forces unique_values to be true.
+        """
+        self.glimpse(
             buf=buf,
+            index=index,
             dtype=dtype,
             isna=isna,
             notna=notna,
             nunique=nunique,
-            unique=True,
+            unique_values=True,
             verbose=verbose,
             emphasize=emphasize,
         )

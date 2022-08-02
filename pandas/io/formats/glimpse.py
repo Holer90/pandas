@@ -48,7 +48,7 @@ frame_examples_sub = dedent(
     3        1    delta        NaN
     4        2  epsilon       0.50
     
-    Prints a glimpse of all columns and its dtypes.
+    Prints a glimpse of each column and its dtypes.
     
     >>> df.glimpse()
     DataFrame with 9 rows and 3 columns.
@@ -58,7 +58,7 @@ frame_examples_sub = dedent(
     
     Prints a glimpse of the unique values instead of the first values.
 
-    >>> df.glimpse(unique=True)
+    >>> df.glimpse(unique_values=True)
     DataFrame with 9 rows and 3 columns.
     int_col    <int64>    1, 2, 3                                                   
     text_col   <object>   'alpha', 'beta', 'gamma', 'delta', 'epsilon', 'zeta',  ...
@@ -94,46 +94,107 @@ frame_examples_sub = dedent(
     float_col  <float64>  (4/5)  |5|  0.0, nan, 0.25, nan, 0.5, nan, 0.75, nan,  ..."""
 )
 
-frame_see_also_sub = dedent(
+frame_unique_examples_sub = dedent(
     """\
-    DataFrame.info: Print a concise summary of a DataFrame.
-    DataFrame.describe: Generate descriptive statistics of DataFrame
-        columns."""
-)
+    >>> int_values = [1, 2, 3, 1, 2, 3, 1, 2, 3]
+    >>> text_values = ['alpha', 'beta', 'gamma', 'delta', 'epsilon', 'zeta', 'eta',
+    ...                'theta', 'iota']
+    >>> float_values = [0.0, None, 0.25, None, 0.5, None, 0.75, None, 1.0]
+    >>> df = pd.DataFrame({"int_col": int_values, "text_col": text_values, 
+    ...                   "float_col": float_values})
+    >>> df.head(5)
+       int_col text_col  float_col
+    0        1    alpha       0.00
+    1        2     beta        NaN
+    2        3    gamma       0.25
+    3        1    delta        NaN
+    4        2  epsilon       0.50
 
+    Prints a glimpse of each column with its dtype and unique values.
+
+    >>> df.glimpse_unique()
+    DataFrame with 9 rows and 3 columns.
+    int_col    <int64>    1, 2, 3                                                   
+    text_col   <object>   'alpha', 'beta', 'gamma', 'delta', 'epsilon', 'zeta',  ...
+    float_col  <float64>  0.0, nan, 0.25, 0.5, 0.75, 1.0    
+
+    Adds the null and non-null counts to the glimpse. This will change to the verbose 
+    output format.
+
+    >>> df.glimpse_unique(isna=True, notna=True)
+    DataFrame with 9 rows and 3 columns.
+    Column     Dtype    Null    Non-null    Unique values                                                            
+    ------     -----    ----    --------    -------------                                                            
+    int_col    int64    0 null  9 non-null  1, 2, 3                                 
+    text_col   object   0 null  9 non-null  'alpha', 'beta', 'gamma', 'delta', ' ...
+    float_col  float64  4 null  5 non-null  0.0, nan, 0.25, 0.5, 0.75, 1.0"""
+)
 
 series_examples_sub = dedent(
     """\
     >>> int_values = [1, 2, 3, 4, 5, 6]
     >>> text_values = ['alpha', 'beta', 'gamma', 'alpha', 'beta', 'gamma']
     >>> s = pd.Series(text_values, index=int_values, name='greek_letters')
-    >>> s.glimpse()
-    TODO: MAKE THE EXAMPLES
-    
-    >>> int_values = [1, 2, 3, 4, 5, 6]
-    >>> text_values = ['alpha', 'beta', 'gamma', 'alpha', 'beta', 'gamma']
-    >>> s = pd.Series(text_values, index=int_values, name='greek_letters')
-    
-    Prints a glimpse of all columns and its dtypes.
-    
+
+    Prints a glimpse the Series with its dtype.
+
     >>> s.glimpse()
     Series (greek_letters) with 6 rows.
     greek_letters  <object>  'alpha', 'beta', 'gamma', 'alpha', 'beta', 'gamma'
-    
+
     Prints a glimpse of the unique values instead of the first values.
-    
-    s.glimpse(unique=True)
+
+    s.glimpse(unique_values=True)
     Series (greek_letters) with 6 rows.
     greek_letters  <object>  'alpha', 'beta', 'gamma'"""
 )
 
+series_unique_examples_sub = dedent(
+    """\
+    >>> int_values = [1, 2, 3, 4, 5, 6]
+    >>> text_values = ['alpha', 'beta', 'gamma', 'alpha', 'beta', 'gamma']
+    >>> s = pd.Series(text_values, index=int_values, name='greek_letters')
+
+    Prints a glimpse the Series with its dtype and unique values.
+
+    >>> s.glimpse_unique()
+    Series (greek_letters) with 6 rows.
+    greek_letters  <object>  'alpha', 'beta', 'gamma'"""
+)
+
+frame_see_also_sub = dedent(
+    """\
+    DataFrame.glimpse_unique: Print a transposed glimpse of a DataFrame 
+        with its unique values.
+    DataFrame.info: Print a concise summary of a DataFrame.
+    DataFrame.describe: Generate descriptive statistics of DataFrame
+        columns."""
+)
+
+frame_unique_see_also_sub = dedent(
+    """\
+    DataFrame.glimpse: Print a transposed glimpse of a DataFrame with 
+        its underlying data.
+    DataFrame.info: Print a concise summary of a DataFrame.
+    DataFrame.describe: Generate descriptive statistics of DataFrame
+        columns."""
+)
 
 series_see_also_sub = dedent(
     """\
+    Series.glimpse_unique: Print a transposed glimpse of a Series
+        with its unique values.
     Series.info: Print a concise summary of a Series.
     Series.describe: Generate descriptive statistics of Series."""
 )
 
+series_unique_see_also_sub = dedent(
+    """\
+    Series.glimpse: Print a transposed glimpse of a Series with its 
+        underlying data.
+    Series.info: Print a concise summary of a Series.
+    Series.describe: Generate descriptive statistics of Series."""
+)
 
 index_sub = dedent(
     """\
@@ -141,11 +202,18 @@ index_sub = dedent(
         Whether to print the column indices.\n"""
 )
 
+unique_values_sub = dedent(
+    """\
+    unique_values: bool, optional
+        Whether to print a glimpse of the unique instead of the first values.\n"""
+)
 
 frame_sub_kwargs_glimpse = {
     "klass": "DataFrame",
     "columns_sub": "s of the columns",
+    "unique_sub": "underlying data",
     "index_sub": index_sub,
+    "unique_values_sub": unique_values_sub,
     "examples_sub": frame_examples_sub,
     "see_also_sub": frame_see_also_sub
 }
@@ -153,15 +221,36 @@ frame_sub_kwargs_glimpse = {
 series_sub_kwargs_glimpse = {
     "klass": "Series",
     "columns_sub": "",
+    "unique_sub": "underlying data",
     "index_sub": "",
+    "unique_values_sub": unique_values_sub,
     "examples_sub": series_examples_sub,
     "see_also_sub": series_see_also_sub
 }
 
+frame_sub_kwargs_glimpse_unique = {
+    "klass": "DataFrame",
+    "columns_sub": "s of the columns",
+    "unique_sub": "unique values",
+    "index_sub": index_sub,
+    "unique_values_sub": "",
+    "examples_sub": frame_examples_sub,
+    "see_also_sub": frame_see_also_sub
+}
+
+series_sub_kwargs_glimpse_unique = {
+    "klass": "Series",
+    "columns_sub": "",
+    "unique_sub": "unique values",
+    "index_sub": "",
+    "unique_values_sub": "",
+    "examples_sub": series_examples_sub,
+    "see_also_sub": series_see_also_sub
+}
 
 GLIMPSE_DOCSTRING = dedent(
-    """
-    Print a transposed glimpse of a {klass}.
+    f"""
+    Print a transposed glimpse of a {klass} with its {unique_sub}.
     
     This method prints a transposed version of a {klass} with
     columns running down the page, and a preview of the data running 
@@ -180,9 +269,7 @@ GLIMPSE_DOCSTRING = dedent(
         Whether to print the non-null count{columns_sub}.
     nunique: bool, optional
         Whether to print the number of unique values
-    unique_values: bool, optional
-        Whether to print a glimpse of the unique instead of the first values.
-    verbose : bool, optional
+    {unique_values_sub}verbose : bool, optional
         Whether to print the headers and count descriptions. By default,
         the setting goes to false if only dtype is enabled and else it
         goes to true.
@@ -390,7 +477,7 @@ class BaseGlimpseInfo(ABC):
         isna: bool | None,
         notna: bool | None,
         nunique: bool | None,
-        unique: bool | None,
+        unique_values: bool | None,
         verbose: bool | None,
         emphasize: bool | None,
     ) -> None:
@@ -497,7 +584,7 @@ class DataFrameGlimpseInfo(BaseGlimpseInfo):
         isna: bool | None,
         notna: bool | None,
         nunique: bool | None,
-        unique: bool | None,
+        unique_values: bool | None,
         verbose: bool | None,
         emphasize: bool | None,
     ) -> None:
@@ -508,7 +595,7 @@ class DataFrameGlimpseInfo(BaseGlimpseInfo):
             include_null_count=isna,
             include_non_null_count=notna,
             include_nunique=nunique,
-            unique_values=unique,
+            unique_values=unique_values,
             verbose=verbose,
             emphasize=emphasize,
         )
@@ -534,7 +621,7 @@ class SeriesGlimpseInfo(BaseGlimpseInfo):
             isna: bool | None,
             notna: bool | None,
             nunique: bool | None,
-            unique: bool | None,
+            unique_values: bool | None,
             verbose: bool | None,
             emphasize: bool | None,
     ) -> None:
@@ -544,7 +631,7 @@ class SeriesGlimpseInfo(BaseGlimpseInfo):
             include_null_count=isna,
             include_non_null_count=notna,
             include_nunique=nunique,
-            unique_values=unique,
+            unique_values=unique_values,
             verbose=verbose,
             emphasize=emphasize,
         )
