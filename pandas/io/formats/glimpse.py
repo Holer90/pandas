@@ -26,270 +26,178 @@ from pandas.core.indexes.api import Index
 from pandas.io.formats import format as fmt
 from pandas.io.formats.printing import pprint_thing
 
-# todo: is there a way to fix circular import? maybe from pandas.core.series import Series??
-#from pandas.core.frame import Series
-
 if TYPE_CHECKING:
     from pandas.core.frame import (
         DataFrame,
         Series,
     )
 
-
-frame_max_cols_sub = dedent(
-    """\
-    max_cols : int, optional
-        When to switch from the verbose to the truncated output. If the
-        DataFrame has more than `max_cols` columns, the truncated output
-        is used. By default, the setting in
-        ``pandas.options.display.max_info_columns`` is used."""
-)
-
-
-show_counts_sub = dedent(
-    """\
-    show_counts : bool, optional
-        Whether to show the non-null counts. By default, this is shown
-        only if the DataFrame is smaller than
-        ``pandas.options.display.max_info_rows`` and
-        ``pandas.options.display.max_info_columns``. A value of True always
-        shows the counts, and False never shows the counts."""
-)
-
-null_counts_sub = dedent(
-    """
-    null_counts : bool, optional
-        .. deprecated:: 1.2.0
-            Use show_counts instead."""
-)
-
-
 frame_examples_sub = dedent(
     """\
-    >>> int_values = [1, 2, 3, 4, 5]
-    >>> text_values = ['alpha', 'beta', 'gamma', 'delta', 'epsilon']
-    >>> float_values = [0.0, 0.25, 0.5, 0.75, 1.0]
-    >>> df = pd.DataFrame({"int_col": int_values, "text_col": text_values,
+    >>> int_values = [1, 2, 3, 1, 2, 3, 1, 2, 3]
+    >>> text_values = ['alpha', 'beta', 'gamma', 'delta', 'epsilon', 'zeta', 'eta',
+    ...                'theta', 'iota']
+    >>> float_values = [0.0, None, 0.25, None, 0.5, None, 0.75, None, 1.0]
+    >>> df = pd.DataFrame({"int_col": int_values, "text_col": text_values, 
     ...                   "float_col": float_values})
-    >>> df
-        int_col text_col  float_col
+    >>> df.head(5)
+       int_col text_col  float_col
     0        1    alpha       0.00
-    1        2     beta       0.25
-    2        3    gamma       0.50
-    3        4    delta       0.75
-    4        5  epsilon       1.00
+    1        2     beta        NaN
+    2        3    gamma       0.25
+    3        1    delta        NaN
+    4        2  epsilon       0.50
+    
+    Prints a glimpse of all columns and its dtypes.
+    
+    >>> df.glimpse()
+    DataFrame with 9 rows and 3 columns.
+    int_col    <int64>    1, 2, 3, 1, 2, 3, 1, 2, 3                                 
+    text_col   <object>   'alpha', 'beta', 'gamma', 'delta', 'epsilon', 'zeta',  ...
+    float_col  <float64>  0.0, nan, 0.25, nan, 0.5, nan, 0.75, nan, 1.0             
+    
+    Prints a glimpse of the unique values instead of the first values.
 
-    Prints information of all columns:
-
-    >>> df.info(verbose=True)
-    <class 'pandas.core.frame.DataFrame'>
-    RangeIndex: 5 entries, 0 to 4
-    Data columns (total 3 columns):
-     #   Column     Non-Null Count  Dtype
-    ---  ------     --------------  -----
-     0   int_col    5 non-null      int64
-     1   text_col   5 non-null      object
-     2   float_col  5 non-null      float64
-    dtypes: float64(1), int64(1), object(1)
-    memory usage: 248.0+ bytes
-
-    Prints a summary of columns count and its dtypes but not per column
-    information:
-
-    >>> df.info(verbose=False)
-    <class 'pandas.core.frame.DataFrame'>
-    RangeIndex: 5 entries, 0 to 4
-    Columns: 3 entries, int_col to float_col
-    dtypes: float64(1), int64(1), object(1)
-    memory usage: 248.0+ bytes
-
-    Pipe output of DataFrame.info to buffer instead of sys.stdout, get
-    buffer content and writes to a text file:
-
-    >>> import io
-    >>> buffer = io.StringIO()
-    >>> df.info(buf=buffer)
-    >>> s = buffer.getvalue()
-    >>> with open("df_info.txt", "w",
-    ...           encoding="utf-8") as f:  # doctest: +SKIP
-    ...     f.write(s)
-    260
-
-    The `memory_usage` parameter allows deep introspection mode, specially
-    useful for big DataFrames and fine-tune memory optimization:
-
-    >>> random_strings_array = np.random.choice(['a', 'b', 'c'], 10 ** 6)
-    >>> df = pd.DataFrame({
-    ...     'column_1': np.random.choice(['a', 'b', 'c'], 10 ** 6),
-    ...     'column_2': np.random.choice(['a', 'b', 'c'], 10 ** 6),
-    ...     'column_3': np.random.choice(['a', 'b', 'c'], 10 ** 6)
-    ... })
-    >>> df.info()
-    <class 'pandas.core.frame.DataFrame'>
-    RangeIndex: 1000000 entries, 0 to 999999
-    Data columns (total 3 columns):
-     #   Column    Non-Null Count    Dtype
-    ---  ------    --------------    -----
-     0   column_1  1000000 non-null  object
-     1   column_2  1000000 non-null  object
-     2   column_3  1000000 non-null  object
-    dtypes: object(3)
-    memory usage: 22.9+ MB
-
-    >>> df.info(memory_usage='deep')
-    <class 'pandas.core.frame.DataFrame'>
-    RangeIndex: 1000000 entries, 0 to 999999
-    Data columns (total 3 columns):
-     #   Column    Non-Null Count    Dtype
-    ---  ------    --------------    -----
-     0   column_1  1000000 non-null  object
-     1   column_2  1000000 non-null  object
-     2   column_3  1000000 non-null  object
-    dtypes: object(3)
-    memory usage: 165.9 MB"""
+    >>> df.glimpse(unique=True)
+    DataFrame with 9 rows and 3 columns.
+    int_col    <int64>    1, 2, 3                                                   
+    text_col   <object>   'alpha', 'beta', 'gamma', 'delta', 'epsilon', 'zeta',  ...
+    float_col  <float64>  0.0, nan, 0.25, 0.5, 0.75, 1.0                            
+    
+    Adds the null and non-null counts to the glimpse. This will change to the verbose 
+    output format.
+    
+    >>> df.glimpse(isna=True, notna=True)
+    DataFrame with 9 rows and 3 columns.
+    Column     Dtype    Null    Non-null    Values                                                                   
+    ------     -----    ----    --------    ------                                                                   
+    int_col    int64    0 null  9 non-null  1, 2, 3, 1, 2, 3, 1, 2, 3               
+    text_col   object   0 null  9 non-null  'alpha', 'beta', 'gamma', 'delta', ' ...
+    float_col  float64  4 null  5 non-null  0.0, nan, 0.25, nan, 0.5, nan, 0.75, ...
+    
+    Adds the column index and the number of unique values to the glimpse.
+    
+    >>> df.glimpse(index=True, nunique=True)
+    DataFrame with 9 rows and 3 columns.
+     #   Column     Dtype    N-unique  Values                                                                   
+    ---  ------     -----    --------  ------                                                                   
+     0   int_col    int64    3 unique  1, 2, 3, 1, 2, 3, 1, 2, 3                    
+     1   text_col   object   9 unique  'alpha', 'beta', 'gamma', 'delta', 'epsil ...
+     2   float_col  float64  5 unique  0.0, nan, 0.25, nan, 0.5, nan, 0.75, nan, ...
+    
+    Adds the null, non-null, and nunique counts while retaining the non-verbose format.
+    
+    >>> df.glimpse(isna=True, notna=True, nunique=True, verbose=False)
+    DataFrame with 9 rows and 3 columns.
+    int_col    <int64>    (0/9)  |3|  1, 2, 3, 1, 2, 3, 1, 2, 3                     
+    text_col   <object>   (0/9)  |9|  'alpha', 'beta', 'gamma', 'delta', 'epsilo ...
+    float_col  <float64>  (4/5)  |5|  0.0, nan, 0.25, nan, 0.5, nan, 0.75, nan,  ..."""
 )
-
 
 frame_see_also_sub = dedent(
     """\
+    DataFrame.info: Print a concise summary of a DataFrame.
     DataFrame.describe: Generate descriptive statistics of DataFrame
-        columns.
-    DataFrame.memory_usage: Memory usage of DataFrame columns."""
+        columns."""
 )
-
-
-frame_sub_kwargs_glimpse = {
-    "klass": "DataFrame",
-    "type_sub": " and columns",
-    "max_cols_sub": frame_max_cols_sub,
-    "show_counts_sub": show_counts_sub,
-    "null_counts_sub": null_counts_sub,
-    "examples_sub": frame_examples_sub,
-    "see_also_sub": frame_see_also_sub,
-    "version_added_sub": "",
-}
 
 
 series_examples_sub = dedent(
     """\
-    >>> int_values = [1, 2, 3, 4, 5]
-    >>> text_values = ['alpha', 'beta', 'gamma', 'delta', 'epsilon']
-    >>> s = pd.Series(text_values, index=int_values)
-    >>> s.info()
-    <class 'pandas.core.series.Series'>
-    Int64Index: 5 entries, 1 to 5
-    Series name: None
-    Non-Null Count  Dtype
-    --------------  -----
-    5 non-null      object
-    dtypes: object(1)
-    memory usage: 80.0+ bytes
-
-    Prints a summary excluding information about its values:
-
-    >>> s.info(verbose=False)
-    <class 'pandas.core.series.Series'>
-    Int64Index: 5 entries, 1 to 5
-    dtypes: object(1)
-    memory usage: 80.0+ bytes
-
-    Pipe output of Series.info to buffer instead of sys.stdout, get
-    buffer content and writes to a text file:
-
-    >>> import io
-    >>> buffer = io.StringIO()
-    >>> s.info(buf=buffer)
-    >>> s = buffer.getvalue()
-    >>> with open("df_info.txt", "w",
-    ...           encoding="utf-8") as f:  # doctest: +SKIP
-    ...     f.write(s)
-    260
-
-    The `memory_usage` parameter allows deep introspection mode, specially
-    useful for big Series and fine-tune memory optimization:
-
-    >>> random_strings_array = np.random.choice(['a', 'b', 'c'], 10 ** 6)
-    >>> s = pd.Series(np.random.choice(['a', 'b', 'c'], 10 ** 6))
-    >>> s.info()
-    <class 'pandas.core.series.Series'>
-    RangeIndex: 1000000 entries, 0 to 999999
-    Series name: None
-    Non-Null Count    Dtype
-    --------------    -----
-    1000000 non-null  object
-    dtypes: object(1)
-    memory usage: 7.6+ MB
-
-    >>> s.info(memory_usage='deep')
-    <class 'pandas.core.series.Series'>
-    RangeIndex: 1000000 entries, 0 to 999999
-    Series name: None
-    Non-Null Count    Dtype
-    --------------    -----
-    1000000 non-null  object
-    dtypes: object(1)
-    memory usage: 55.3 MB"""
+    >>> int_values = [1, 2, 3, 4, 5, 6]
+    >>> text_values = ['alpha', 'beta', 'gamma', 'alpha', 'beta', 'gamma']
+    >>> s = pd.Series(text_values, index=int_values, name='greek_letters')
+    >>> s.glimpse()
+    TODO: MAKE THE EXAMPLES
+    
+    >>> int_values = [1, 2, 3, 4, 5, 6]
+    >>> text_values = ['alpha', 'beta', 'gamma', 'alpha', 'beta', 'gamma']
+    >>> s = pd.Series(text_values, index=int_values, name='greek_letters')
+    
+    Prints a glimpse of all columns and its dtypes.
+    
+    >>> s.glimpse()
+    Series (greek_letters) with 6 rows.
+    greek_letters  <object>  'alpha', 'beta', 'gamma', 'alpha', 'beta', 'gamma'
+    
+    Prints a glimpse of the unique values instead of the first values.
+    
+    s.glimpse(unique=True)
+    Series (greek_letters) with 6 rows.
+    greek_letters  <object>  'alpha', 'beta', 'gamma'"""
 )
 
 
 series_see_also_sub = dedent(
     """\
-    Series.describe: Generate descriptive statistics of Series.
-    Series.memory_usage: Memory usage of Series."""
+    Series.info: Print a concise summary of a Series.
+    Series.describe: Generate descriptive statistics of Series."""
 )
 
 
+index_sub = dedent(
+    """\
+    index : bool, optional
+        Whether to print the column indices.\n"""
+)
+
+
+frame_sub_kwargs_glimpse = {
+    "klass": "DataFrame",
+    "columns_sub": "s of the columns",
+    "index_sub": index_sub,
+    "examples_sub": frame_examples_sub,
+    "see_also_sub": frame_see_also_sub
+}
+
 series_sub_kwargs_glimpse = {
     "klass": "Series",
-    "type_sub": "",
-    "max_cols_sub": "",
-    "show_counts_sub": show_counts_sub,
-    "null_counts_sub": "",
+    "columns_sub": "",
+    "index_sub": "",
     "examples_sub": series_examples_sub,
-    "see_also_sub": series_see_also_sub,
-    "version_added_sub": "\n.. versionadded:: 1.4.0\n",
+    "see_also_sub": series_see_also_sub
 }
 
 
 GLIMPSE_DOCSTRING = dedent(
     """
-    Print a concise summary of a {klass}.
-
-    This method prints information about a {klass} including
-    the index dtype{type_sub}, non-null values and memory usage.
-    {version_added_sub}\
-
+    Print a transposed glimpse of a {klass}.
+    
+    This method prints a transposed version of a {klass} with
+    columns running down the page, and a preview of the data running 
+    across. Further, it can include extra information such as the index,
+    dtype, null values, non-null values and number of unique values.
+    
+    ..versionadded:: 1.4.3
+    
     Parameters
     ----------
+    {index_sub}dtype : bool, optional
+        Whether to print the dtype{columns_sub}.
+    isna : bool, optional
+        Whether to print the null count{columns_sub}.
+    notna : bool, optional
+        Whether to print the non-null count{columns_sub}.
+    nunique: bool, optional
+        Whether to print the number of unique values
+    unique_values: bool, optional
+        Whether to print a glimpse of the unique instead of the first values.
     verbose : bool, optional
-        Whether to print the full summary. By default, the setting in
-        ``pandas.options.display.max_info_columns`` is followed.
+        Whether to print the headers and count descriptions. By default,
+        the setting goes to false if only dtype is enabled and else it
+        goes to true.
+    emphasize: bool, optional
+        Whether to emphasize the optional information columns. By 
+        default, it is enabled if verbose is false.
     buf : writable buffer, defaults to sys.stdout
         Where to send the output. By default, the output is printed to
         sys.stdout. Pass a writable buffer if you need to further process
         the output.\
-    {max_cols_sub}
-    memory_usage : bool, str, optional
-        Specifies whether total memory usage of the {klass}
-        elements (including the index) should be displayed. By default,
-        this follows the ``pandas.options.display.memory_usage`` setting.
-
-        True always show memory usage. False never shows memory usage.
-        A value of 'deep' is equivalent to "True with deep introspection".
-        Memory usage is shown in human-readable units (base-2
-        representation). Without deep introspection a memory estimation is
-        made based in column dtype and number of rows assuming values
-        consume the same memory amount for corresponding dtypes. With deep
-        memory introspection, a real memory usage calculation is performed
-        at the cost of computational resources. See the
-        :ref:`Frequently Asked Questions <df-memory-usage>` for more
-        details.
-    {show_counts_sub}{null_counts_sub}
-
+        
     Returns
     -------
     None
-        This method prints a summary of a {klass} and returns None.
+        This method prints a glimpse of a {klass} and returns None.
 
     See Also
     --------
@@ -467,18 +375,24 @@ class BaseGlimpseInfo(ABC):
     def unique_value_strings(self) -> Sequence[str]:
         """Sequence of string representing the values."""
 
+    @property
+    @abstractmethod
+    def is_empty(self) -> bool:
+        """Boolean representing if the data is empty."""
+
     @abstractmethod
     def render(
         self,
         *,
         buf: WriteBuffer[str] | None,
-        line_number: bool | None,
+        index: bool | None,
         dtype: bool | None,
         isna: bool | None,
         notna: bool | None,
         nunique: bool | None,
         unique: bool | None,
         verbose: bool | None,
+        emphasize: bool | None,
     ) -> None:
         pass
 
@@ -518,11 +432,6 @@ class DataFrameGlimpseInfo(BaseGlimpseInfo):
             DataFrame's column names.
         """
         return self.data.columns
-
-    @property
-    def col_count(self) -> int:
-        """Number of columns to be summarized."""
-        return len(self.ids)
 
     @property
     def non_null_counts(self) -> Sequence[int]:
@@ -575,27 +484,33 @@ class DataFrameGlimpseInfo(BaseGlimpseInfo):
             ))[:value_strings_max_width]
         return s
 
+    @property
+    def is_empty(self) -> bool:
+        return self.data.empty
+
     def render(
         self,
         *,
         buf: WriteBuffer[str] | None,
-        line_number: bool | None,
+        index: bool | None,
         dtype: bool | None,
         isna: bool | None,
         notna: bool | None,
         nunique: bool | None,
         unique: bool | None,
         verbose: bool | None,
+        emphasize: bool | None,
     ) -> None:
         printer = DataFrameGlimpsePrinter(
             info=self,
-            include_line_number=line_number,
+            include_index=index,
             include_dtype=dtype,
             include_null_count=isna,
             include_non_null_count=notna,
             include_nunique=nunique,
             unique_values=unique,
             verbose=verbose,
+            emphasize=emphasize,
         )
         printer.to_buffer(buf)
 
@@ -621,6 +536,7 @@ class SeriesGlimpseInfo(BaseGlimpseInfo):
             nunique: bool | None,
             unique: bool | None,
             verbose: bool | None,
+            emphasize: bool | None,
     ) -> None:
         printer = SeriesGlimpsePrinter(
             info=self,
@@ -630,6 +546,7 @@ class SeriesGlimpseInfo(BaseGlimpseInfo):
             include_nunique=nunique,
             unique_values=unique,
             verbose=verbose,
+            emphasize=emphasize,
         )
         printer.to_buffer(buf)
 
@@ -647,7 +564,6 @@ class SeriesGlimpseInfo(BaseGlimpseInfo):
 
     @property
     def nunique_counts(self) -> Sequence[int]:
-        # todo: this looks shady - reconsider??
         try:
             return [self.data.nunique()]
         except:
@@ -687,6 +603,9 @@ class SeriesGlimpseInfo(BaseGlimpseInfo):
             ))[:value_strings_max_width]
         return s
 
+    @property
+    def is_empty(self) -> bool:
+        return self.data.empty
 
 
 class GlimpsePrinterAbstract:
@@ -715,8 +634,8 @@ class DataFrameGlimpsePrinter(GlimpsePrinterAbstract):
     ----------
     info : DataFrameGlimpseInfo
         Instance of DataFrameGlimpseInfo.
-    include_line_number: bool, optional
-        Whether to show the line numbers.
+    include_index: bool, optional
+        Whether to show the index.
     include_dtype: bool, optional
         Whether to show the dtypes.
     include_null_count: bool, optional
@@ -731,38 +650,43 @@ class DataFrameGlimpsePrinter(GlimpsePrinterAbstract):
         Whether to print the headers and units. By default, the
         setting goes to false if only dtype is enabled and else
         it goes to true.
+    emphasize: bool, optional
+        Whether to emphasize the columns between the column name
+        and the values. By default, it is enabled if verbose is
+        false.
     """
 
     def __init__(
         self,
         info: DataFrameGlimpseInfo,
-        include_line_number: bool | None = None,
+        include_index: bool | None = None,
         include_dtype: bool | None = None,
         include_null_count: bool | None = None,
         include_non_null_count: bool | None = None,
         include_nunique: bool | None = None,
         unique_values: bool | None = None,
         verbose: bool | None = None,
+        emphasize: bool | None = None,
     ) -> None:
         self.info = info
         self.data = info.data
-        self.include_line_number = self._initialize_line_number(include_line_number)
+        self.include_index = self._initialize_index(include_index)
         self.include_dtype = self._initialize_dtype(include_dtype)
         self.include_non_null_count = self._initialize_non_null_count(include_non_null_count)
         self.include_null_count = self._initialize_null_count(include_null_count)
         self.include_nunique = self._initialize_nunique(include_nunique)
         self.unique_values = self._initialize_unique_values(unique_values)
         self.verbose = self._initialize_verbose(verbose)
+        self.emphasize = self._initialize_emphasize(emphasize)
 
     @property
-    def col_count(self) -> int:
-        """Number of columns to be summarized."""
-        return self.info.col_count
+    def is_empty(self) -> bool:
+        return self.info.is_empty
 
     def _initialize_verbose(self, verbose: bool | None) -> bool:
         if verbose is None:
             # check that all the extra options are False (apart from dtype).
-            if (self.include_line_number or self.include_non_null_count or self.include_null_count or
+            if (self.include_index or self.include_non_null_count or self.include_null_count or
                     self.include_nunique) is False:
                 return False
             else:
@@ -770,11 +694,17 @@ class DataFrameGlimpsePrinter(GlimpsePrinterAbstract):
         else:
             return verbose
 
-    def _initialize_line_number(self, include_line_number: bool | None) -> bool:
-        if include_line_number is None:
+    def _initialize_emphasize(self, emphasize: bool | None) -> bool:
+        if emphasize is None:
+            return not self.verbose
+        else:
+            return emphasize
+
+    def _initialize_index(self, include_index: bool | None) -> bool:
+        if include_index is None:
             return False
         else:
-            return include_line_number
+            return include_index
 
     def _initialize_dtype(self, include_dtype: bool | None) -> bool:
         if include_dtype is None:
@@ -812,13 +742,14 @@ class DataFrameGlimpsePrinter(GlimpsePrinterAbstract):
         """
         return DataFrameTableBuilder(
             info=self.info,
-            include_line_number=self.include_line_number,
+            include_index=self.include_index,
             include_dtype=self.include_dtype,
             include_null_count=self.include_null_count,
             include_non_null_count=self.include_non_null_count,
             include_nunique=self.include_nunique,
             unique_values=self.unique_values,
             verbose=self.verbose,
+            emphasize=self.emphasize,
         )
 
 
@@ -843,6 +774,10 @@ class SeriesGlimpsePrinter(GlimpsePrinterAbstract):
         Whether to print the headers and units. By default, the
         setting goes to false if only dtype is enabled and else
         it goes to true.
+    emphasize: bool, optional
+        Whether to emphasize the columns between the column name
+        and the values. By default, it is enabled if verbose is
+        false.
     """
 
     def __init__(
@@ -854,6 +789,7 @@ class SeriesGlimpsePrinter(GlimpsePrinterAbstract):
         include_nunique: bool | None = None,
         unique_values: bool | None = None,
         verbose: bool | None = None,
+        emphasize: bool | None = None,
     ) -> None:
         self.info = info
         self.data = info.data
@@ -863,6 +799,11 @@ class SeriesGlimpsePrinter(GlimpsePrinterAbstract):
         self.include_nunique = self._initialize_nunique(include_nunique)
         self.unique_values = self._initialize_unique_values(unique_values)
         self.verbose = self._initialize_verbose(verbose)
+        self.emphasize = self._initialize_emphasize(emphasize)
+
+    @property
+    def is_empty(self) -> bool:
+        return self.info.is_empty
 
     def _initialize_verbose(self, verbose: bool | None) -> bool:
         if verbose is None:
@@ -874,11 +815,17 @@ class SeriesGlimpsePrinter(GlimpsePrinterAbstract):
         else:
             return verbose
 
-    def _initialize_line_number(self, include_line_number: bool | None) -> bool:
-        if include_line_number is None:
+    def _initialize_emphasize(self, emphasize: bool | None) -> bool:
+        if emphasize is None:
+            return not self.verbose
+        else:
+            return emphasize
+
+    def _initialize_index(self, include_index: bool | None) -> bool:
+        if include_index is None:
             return False
         else:
-            return include_line_number
+            return include_index
 
     def _initialize_dtype(self, include_dtype: bool | None) -> bool:
         if include_dtype is None:
@@ -922,20 +869,25 @@ class SeriesGlimpsePrinter(GlimpsePrinterAbstract):
             include_nunique=self.include_nunique,
             unique_values=self.unique_values,
             verbose=self.verbose,
+            emphasize=self.emphasize,
         )
 
 
 class TableBuilderAbstract(ABC):
     """
-    Abstract builder for info table.
+    Abstract builder for glimpse table.
     """
 
     _lines: list[str]
     info: BaseGlimpseInfo
 
-    @abstractmethod
     def get_lines(self) -> list[str]:
-        """Product in a form of list of lines (strings)."""
+        self._lines = []
+        if self.is_empty is True:
+            self._fill_empty_glimpse()
+        else:
+            self._fill_non_empty_glimpse()
+        return self._lines
 
     @property
     def data(self) -> DataFrame | Series:
@@ -966,10 +918,29 @@ class TableBuilderAbstract(ABC):
     def unique_value_strings(self) -> Iterable[str]:
         return self.info.unique_value_strings
 
+    @property
+    def is_empty(self) -> bool:
+        """Boolean representing if the data is empty."""
+        return self.info.is_empty
+
+    @abstractmethod
+    def add_summary_line(self) -> None:
+        """Add line containing type, rows and columns."""
+
+    def _fill_empty_glimpse(self) -> None:
+        """Add lines to the glimpse table, pertaining to empty dataframe."""
+        self.add_summary_line()
+        self._lines.append("")
+        # self._lines.append(f"Empty {type(self.data).__name__}\n")
+
+    @abstractmethod
+    def _fill_non_empty_glimpse(self) -> None:
+        """Add lines to the glimpse table, pertaining to non-empty dataframe or series."""
+
 
 class DataFrameTableBuilderAbstract(TableBuilderAbstract):
     """
-    Abstract builder for dataframe info table.
+    Abstract builder for dataframe glimpse table.
 
     Parameters
     ----------
@@ -980,23 +951,6 @@ class DataFrameTableBuilderAbstract(TableBuilderAbstract):
     def __init__(self, *, info: DataFrameGlimpseInfo) -> None:
         self.info: DataFrameGlimpseInfo = info
 
-    def get_lines(self) -> list[str]:
-        self._lines = []
-        if self.col_count == 0:
-            self._fill_empty_info()
-        else:
-            self._fill_non_empty_info()
-        return self._lines
-
-    def _fill_empty_info(self) -> None:
-        """Add lines to the info table, pertaining to empty dataframe."""
-        self.add_summary_line()
-        self._lines.append(f"Empty {type(self.data).__name__}\n")
-
-    @abstractmethod
-    def _fill_non_empty_info(self) -> None:
-        """Add lines to the info table, pertaining to non-empty dataframe."""
-
     @property
     def data(self) -> DataFrame:
         """DataFrame."""
@@ -1006,11 +960,6 @@ class DataFrameTableBuilderAbstract(TableBuilderAbstract):
     def ids(self) -> Index:
         """Dataframe columns."""
         return self.info.ids
-
-    @property
-    def col_count(self) -> int:
-        """Number of dataframe columns to be summarized."""
-        return self.info.col_count
 
     def add_summary_line(self) -> None:
         """Add line containing type, rows and columns."""
@@ -1026,13 +975,14 @@ class TableBuilderMixin(TableBuilderAbstract):
     max_glimpse_width: int = 300
     strrows: Sequence[Sequence[str]]
     gross_column_widths: Sequence[int]
-    include_line_number: bool
+    include_index: bool
     include_dtype: bool
-    include_non_null_count: bool
     include_null_count: bool
+    include_non_null_count: bool
     include_nunique: bool
     unique_values: bool
     verbose: bool
+    emphasize: bool
 
     @property
     @abstractmethod
@@ -1068,7 +1018,12 @@ class TableBuilderMixin(TableBuilderAbstract):
 
         Each element represents a row comprising a sequence of strings.
         """
-        # TODO: Move _gen_rows() and headers() to here as they are the same!
+
+    @abstractmethod
+    def _emphasize_body_line(self, body_line) -> str:
+        """
+        Emphasize some columns based on verbosity and the columns.
+        """
 
     def add_header_line(self) -> None:
         header_line = self.SPACING.join(
@@ -1100,33 +1055,11 @@ class TableBuilderMixin(TableBuilderAbstract):
                 ]
             )
             body_line = _trim_str(body_line, trim_width)
-            # todo: we *could* handle italic here by seaching for '  <', '  (', '  |', '>  ', ')  ', and '|  '. But it
-            #  might break in edge/unlucky cases.
-            # todo: maybe we can do it levering info from self.gross_column_widths??
-            # todo: find a way to NOT hardcode start/end_idx
-            # todo: the code below is ugly. lets find a better way!
-            if self.verbose is False and (self.include_dtype or
-                                          self.include_null_count or
-                                          self.include_non_null_count or
-                                          self.include_nunique) is True:
-                if self.include_line_number is True:
-                    start_col_idx = 2
-                else:
-                    start_col_idx = 1
 
-                end_col_idx = start_col_idx
-                if self.include_dtype is True:
-                    end_col_idx += 1
-                if (self.include_null_count or self.include_non_null_count) is True:
-                    end_col_idx += 1
-                if self.include_nunique is True:
-                    end_col_idx += 1
+            # Italicize the extra columns
+            if self.emphasize is True:
+                body_line = self._emphasize_body_line(body_line)
 
-                body_line = _format_body_line(body_line, self.gross_column_widths, len(self.SPACING),
-                                              start_col_idx=start_col_idx,
-                                              end_col_idx=end_col_idx,
-                                              italic=True,
-                                              bold=False)
             self._lines.append(body_line)
 
     def _gen_dtypes(self, verbose: bool) -> Iterator[str]:
@@ -1189,27 +1122,29 @@ class DataFrameTableBuilder(DataFrameTableBuilderAbstract, TableBuilderMixin):
         self,
         *,
         info: DataFrameGlimpseInfo,
-        include_line_number: bool,
+        include_index: bool,
         include_dtype: bool,
         include_null_count: bool,
         include_non_null_count: bool,
         include_nunique: bool,
         unique_values: bool,
         verbose: bool,
+        emphasize: bool,
     ) -> None:
         self.info = info
-        self.include_line_number = include_line_number
+        self.include_index = include_index
         self.include_dtype = include_dtype
         self.include_null_count = include_null_count
         self.include_non_null_count = include_non_null_count
         self.include_nunique = include_nunique
         self.unique_values = unique_values
         self.verbose = verbose
+        self.emphasize = emphasize
         self.strrows: Sequence[Sequence[str]] = list(self._gen_rows())
         self.gross_column_widths: Sequence[int] = self._get_gross_column_widths()
 
-    def _fill_non_empty_info(self) -> None:
-        """Add lines to the info table, pertaining to non-empty dataframe."""
+    def _fill_non_empty_glimpse(self) -> None:
+        """Add lines to the glimpse table, pertaining to non-empty dataframe."""
         self.add_summary_line()
         if self.verbose is True:
             self.add_header_line()
@@ -1223,7 +1158,7 @@ class DataFrameTableBuilder(DataFrameTableBuilderAbstract, TableBuilderMixin):
         header_list = list()
 
        # Line number
-        if self.include_line_number is True:
+        if self.include_index is True:
             header_list.append(" # ")
 
         # Column
@@ -1233,13 +1168,13 @@ class DataFrameTableBuilder(DataFrameTableBuilderAbstract, TableBuilderMixin):
         if self.include_dtype is True:
             header_list.append("Dtype")
 
-        # Non-null count
-        if self.include_non_null_count is True:
-            header_list.append("Non-null")
-
         # Null count
         if self.include_null_count is True:
             header_list.append("Null")
+
+        # Non-null count
+        if self.include_non_null_count is True:
+            header_list.append("Non-null")
 
         # N-unique
         if self.include_nunique is True:
@@ -1256,9 +1191,9 @@ class DataFrameTableBuilder(DataFrameTableBuilderAbstract, TableBuilderMixin):
     def _gen_rows(self) -> Iterator[Sequence[str]]:
         to_include = list()
 
-        # Line numbers
-        if self.include_line_number is True:
-            to_include.append(self._gen_line_numbers(self.verbose))
+        # Indexes
+        if self.include_index is True:
+            to_include.append(self._gen_indexes(self.verbose))
 
         # Columns
         to_include.append(self._gen_columns())
@@ -1270,11 +1205,11 @@ class DataFrameTableBuilder(DataFrameTableBuilderAbstract, TableBuilderMixin):
         # Non-null and null count.
         # Note: If verbose is False, then non-null and null counts can only be included together.
         if self.verbose is True:
-            if self.include_non_null_count is True:
-                to_include.append(self._gen_non_null_counts())
-
             if self.include_null_count is True:
                 to_include.append(self._gen_null_counts())
+
+            if self.include_non_null_count is True:
+                to_include.append(self._gen_non_null_counts())
         else:
             if (self.include_non_null_count or self.include_null_count) is True:
                 to_include.append(self._gen_null_and_non_null_counts())
@@ -1293,8 +1228,23 @@ class DataFrameTableBuilder(DataFrameTableBuilderAbstract, TableBuilderMixin):
             *to_include
         )
 
-    def _gen_line_numbers(self, verbose: bool) -> Iterator[str]:
-        """Iterator with string representation of column numbers."""
+    def _emphasize_body_line(self, body_line) -> str:
+        """Emphasize some columns based on verbosity and the columns."""
+        start_col_idx = 1 + self.include_index
+        end_col_idx = start_col_idx + self.include_dtype + \
+                      (self.include_null_count or self.include_non_null_count) + \
+                      self.include_nunique
+
+        if end_col_idx > start_col_idx:
+            body_line = _format_body_line(body_line, self.gross_column_widths, len(self.SPACING),
+                                          start_col_idx=start_col_idx,
+                                          end_col_idx=end_col_idx,
+                                          italic=True,
+                                          bold=False)
+        return body_line
+
+    def _gen_indexes(self, verbose: bool) -> Iterator[str]:
+        """Iterator with string representation of column index."""
         if verbose is True:
             for i, _ in enumerate(self.ids):
                 yield f" {i}"
@@ -1310,7 +1260,7 @@ class DataFrameTableBuilder(DataFrameTableBuilderAbstract, TableBuilderMixin):
 
 class SeriesTableBuilderAbstract(TableBuilderAbstract):
     """
-    Abstract builder for series info table.
+    Abstract builder for series glimpse table.
 
     Parameters
     ----------
@@ -1321,19 +1271,10 @@ class SeriesTableBuilderAbstract(TableBuilderAbstract):
     def __init__(self, *, info: SeriesGlimpseInfo) -> None:
         self.info: SeriesGlimpseInfo = info
 
-    def get_lines(self) -> list[str]:
-        self._lines = []
-        self._fill_non_empty_info()
-        return self._lines
-
     @property
     def data(self) -> Series:
         """Series."""
         return self.info.data
-
-    @abstractmethod
-    def _fill_non_empty_info(self) -> None:
-        """Add lines to the info table, pertaining to non-empty series."""
 
     def add_summary_line(self) -> None:
         """Add line containing type, rows and columns."""
@@ -1343,7 +1284,7 @@ class SeriesTableBuilderAbstract(TableBuilderAbstract):
 
 class SeriesTableBuilder(SeriesTableBuilderAbstract, TableBuilderMixin):
     """
-    Series info table builder.
+    Series glimpse table builder.
     """
 
     def __init__(
@@ -1356,6 +1297,7 @@ class SeriesTableBuilder(SeriesTableBuilderAbstract, TableBuilderMixin):
         include_nunique: bool,
         unique_values: bool,
         verbose: bool,
+        emphasize: bool,
     ) -> None:
         self.info = info
         self.include_dtype = include_dtype
@@ -1364,12 +1306,12 @@ class SeriesTableBuilder(SeriesTableBuilderAbstract, TableBuilderMixin):
         self.include_nunique = include_nunique
         self.unique_values = unique_values
         self.verbose = verbose
+        self.emphasize = emphasize
         self.strrows: Sequence[Sequence[str]] = list(self._gen_rows())
         self.gross_column_widths: Sequence[int] = self._get_gross_column_widths()
 
-    def _fill_non_empty_info(self) -> None:
-        """Add lines to the info table, pertaining to non-empty series."""
-        # todo: should the add_series_name be converted to add_summary with num_rows??
+    def _fill_non_empty_glimpse(self) -> None:
+        """Add lines to the glimpse table, pertaining to non-empty series."""
         self.add_summary_line()
         if self.verbose is True:
             self.add_header_line()
@@ -1377,8 +1319,6 @@ class SeriesTableBuilder(SeriesTableBuilderAbstract, TableBuilderMixin):
         self.add_body_lines()
         self._lines.append("")
 
-    def add_series_name_line(self) -> None:
-        self._lines.append(f"Series name: {self.data.name}")
 
     @property
     def headers(self) -> Sequence[str]:
@@ -1445,14 +1385,31 @@ class SeriesTableBuilder(SeriesTableBuilderAbstract, TableBuilderMixin):
             *to_include
         )
 
+    def _emphasize_body_line(self, body_line) -> str:
+        """Emphasize some columns based on verbosity and the columns."""
+        start_col_idx = 1
+        end_col_idx = start_col_idx + self.include_dtype + \
+                      (self.include_null_count or self.include_non_null_count) + \
+                      self.include_nunique
+
+        if end_col_idx > start_col_idx:
+            body_line = _format_body_line(body_line, self.gross_column_widths, len(self.SPACING),
+                                          start_col_idx=start_col_idx,
+                                          end_col_idx=end_col_idx,
+                                          italic=True,
+                                          bold=False)
+        return body_line
+
     def _gen_name(self) -> Iterator[str]:
         """Iterator with string representation of series name."""
-        # todo: should this have a for loop?? (or should I remove the other for loops?)
         yield pprint_thing(self.data.name)
 
 
 
 def _get_nunique_without_unhashable_error(df: DataFrame) -> Sequence[int]:
+    # todo: this looks shady - reconsider?? (and apply same conclusion to the series nunique function)
+    # todo: document this function
+    # todo: should it say 'unhashable' or something else
     # imported here to avoid circular imports from partially imported module.
     from pandas import Series
 
@@ -1468,16 +1425,13 @@ def _get_nunique_without_unhashable_error(df: DataFrame) -> Sequence[int]:
 
     return s
 
-# todo: why is glimpse not ending with a newline when info is??
-# todo: how should glimpse handle an empty dataframe/series?
+
 # todo: should unique_values have a sorting option?
 # todo: should _put_str and _trim_str be merged ? (it would make _trim_str less convoluted)
-# todo: series new line after print body
-# todo: should null be before non-null?
 # todo: should column-number be an option?
 # todo: implement pandas get_option (display.glimpse.defaults: ['dtype'])
 # todo: series.py line_numbers error/warning message.
-
+# todo: how are we handling empty dataframe/series?
 
 # todo: should I make an abbreviated version?
 # non-verbose ideas
@@ -1493,18 +1447,48 @@ def _get_nunique_without_unhashable_error(df: DataFrame) -> Sequence[int]:
 
 # cut  <float64>  (0/53940)  |5|  'Ideal', 'Premium', 'Good', 'Very Good',  ...
 
-
-# todo: remove headers - it looks weird. Change to verbose=False.
-# clarity  <float64>  <
-
-
-# todo: add alias for compact = verbose
-# todo: should compact be inferred? I.e. if col_number, isna, notna and nunique is all false and compact is None, then compact is True??? <-- this seems like a great idea. Either this or compact is the default and to get headers you run verbose=True. Maybe both??
-
-
-
-
 # todo: add show counts option which ensures the null count, non-null count and nunique all become true? (handle this is series.py + glimpse.py)
 # todo: should self._lines.append("") be replaced by a \n somewhere??
 
 # todo: fix spacing (espicially around verbose=false, line_number=true)!
+
+# todo: should emphasize have the option to choose which way to emphasize?
+# todo: fix verbose=True, emphasize=True, isna=True, notna=True case (by fixing the hard-coded counting...)
+
+# todo: fix documentation for glimpse_unique()
+# todo: write tests...
+
+# todo: change to one-liner in series.py and frame.py (instead of info = SeriesGlimpse...)
+# todo: should there be an indication that the values are unique (perhaps in the summary line) when running unique=True??
+# todo: should None relly be printed as `nan` and not `NaN`??
+
+# todo: update versionadded
+
+
+
+# todo: give glimpse_unique the isnull/notnull treatment. (And add the {unique_version} to the kwargs-dicts)
+'''
+    @doc(NDFrame.isna, klass=_shared_doc_kwargs["klass"])
+    def isna(self) -> DataFrame:
+        result = self._constructor(self._mgr.isna(func=isna))
+        return result.__finalize__(self, method="isna")
+
+    @doc(NDFrame.isna, klass=_shared_doc_kwargs["klass"])
+    def isnull(self) -> DataFrame:
+        """
+        DataFrame.isnull is an alias for DataFrame.isna.
+        """
+        return self.isna()
+
+    @doc(NDFrame.notna, klass=_shared_doc_kwargs["klass"])
+    def notna(self) -> DataFrame:
+        return ~self.isna()
+
+    @doc(NDFrame.notna, klass=_shared_doc_kwargs["klass"])
+    def notnull(self) -> DataFrame:
+        """
+        DataFrame.notnull is an alias for DataFrame.notna.
+        """
+        return ~self.isna()
+'''
+
