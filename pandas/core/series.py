@@ -5384,17 +5384,18 @@ Keep all original rows and also all original values
     def glimpse(
             self,
             buf: WriteBuffer[str] | None = None,
-            line_number: bool | None = None,
+            index: bool | None = None,
             dtype: bool | None = None,
             isna: bool | None = None,
             notna: bool | None = None,
             nunique: bool | None = None,
             unique: bool | None = None,
             verbose: bool | None = None,
+            emphasize: bool | None = None,
     ) -> None:
-        if line_number is not None:
+        if index is not None:
             warnings.warn(
-                "line_number is only for DataFrames.",
+                "index is only for DataFrames.",
                 UserWarning,
                 stacklevel=find_stack_level(),
             )
@@ -5409,6 +5410,39 @@ Keep all original rows and also all original values
             nunique=nunique,
             unique=unique,
             verbose=verbose,
+            emphasize=emphasize,
+        )
+
+    @doc(GLIMPSE_DOCSTRING, **series_sub_kwargs_glimpse)
+    def glimpse_unique(
+            self,
+            buf: WriteBuffer[str] | None = None,
+            index: bool | None = None,
+            dtype: bool | None = None,
+            isna: bool | None = None,
+            notna: bool | None = None,
+            nunique: bool | None = None,
+            verbose: bool | None = None,
+            emphasize: bool | None = None,
+    ) -> None:
+        if index is not None:
+            warnings.warn(
+                "index is only for DataFrames.",
+                UserWarning,
+                stacklevel=find_stack_level(),
+            )
+        info = SeriesGlimpseInfo(
+            data=self,
+        )
+        info.render(
+            buf=buf,
+            dtype=dtype,
+            isna=isna,
+            notna=notna,
+            nunique=nunique,
+            unique=True,
+            verbose=verbose,
+            emphasize=emphasize,
         )
 
     def _replace_single(self, to_replace, method: str, inplace: bool, limit):

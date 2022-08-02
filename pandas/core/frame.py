@@ -3413,26 +3413,55 @@ class DataFrame(NDFrame, OpsMixin):
     def glimpse(
             self,
             buf: WriteBuffer[str] | None = None,
-            line_number: bool | None = None,
+            index: bool | None = None,
             dtype: bool | None = None,
             isna: bool | None = None,
             notna: bool | None = None,
             nunique: bool | None = None,
             unique: bool | None = None,
             verbose: bool | None = None,
+            emphasize: bool | None = None,
     ) -> None:
         info = DataFrameGlimpseInfo(
             data=self,
         )
         info.render(
             buf=buf,
-            line_number=line_number,
+            index=index,
             dtype=dtype,
             isna=isna,
             notna=notna,
             nunique=nunique,
             unique=unique,
             verbose=verbose,
+            emphasize=emphasize,
+        )
+
+    @doc(GLIMPSE_DOCSTRING, **frame_sub_kwargs_glimpse)
+    def glimpse_unique(
+            self,
+            buf: WriteBuffer[str] | None = None,
+            index: bool | None = None,
+            dtype: bool | None = None,
+            isna: bool | None = None,
+            notna: bool | None = None,
+            nunique: bool | None = None,
+            verbose: bool | None = None,
+            emphasize: bool | None = None,
+    ) -> None:
+        info = DataFrameGlimpseInfo(
+            data=self,
+        )
+        info.render(
+            buf=buf,
+            index=index,
+            dtype=dtype,
+            isna=isna,
+            notna=notna,
+            nunique=nunique,
+            unique=True,
+            verbose=verbose,
+            emphasize=emphasize,
         )
 
     def memory_usage(self, index: bool = True, deep: bool = False) -> Series:
