@@ -3413,7 +3413,6 @@ class DataFrame(NDFrame, OpsMixin):
     @doc(GLIMPSE_DOCSTRING, **frame_sub_kwargs_glimpse)
     def glimpse(
             self,
-            buf: WriteBuffer[str] | None = None,
             index: bool | None = None,
             dtype: bool | None = None,
             isna: bool | None = None,
@@ -3422,9 +3421,12 @@ class DataFrame(NDFrame, OpsMixin):
             unique_values: bool | None = None,
             verbose: bool | None = None,
             emphasize: bool | None = None,
+            buf: WriteBuffer[str] | None = None,
+            width: int | None = None,
     ) -> None:
         info = DataFrameGlimpseInfo(
             data=self,
+            glimpse_width=width,
         )
         info.render(
             buf=buf,
@@ -3438,16 +3440,9 @@ class DataFrame(NDFrame, OpsMixin):
             emphasize=emphasize,
         )
 
-    def isnull(self) -> DataFrame:
-        """
-        DataFrame.isnull is an alias for DataFrame.isna.
-        """
-        return self.isna()
-
     @doc(GLIMPSE_DOCSTRING, **frame_sub_kwargs_glimpse_unique)
     def glimpse_unique(
             self,
-            buf: WriteBuffer[str] | None = None,
             index: bool | None = None,
             dtype: bool | None = None,
             isna: bool | None = None,
@@ -3455,6 +3450,8 @@ class DataFrame(NDFrame, OpsMixin):
             nunique: bool | None = None,
             verbose: bool | None = None,
             emphasize: bool | None = None,
+            buf: WriteBuffer[str] | None = None,
+            width: int | None = None,
     ) -> None:
         """
         DataFrame.glimpse_unique is an alias for DataFrame.glimpse which
@@ -3470,7 +3467,16 @@ class DataFrame(NDFrame, OpsMixin):
             unique_values=True,
             verbose=verbose,
             emphasize=emphasize,
+            width=width,
         )
+
+
+    def isnull(self) -> DataFrame:
+        """
+        DataFrame.isnull is an alias for DataFrame.isna.
+        """
+        return self.isna()
+
 
     def memory_usage(self, index: bool = True, deep: bool = False) -> Series:
         """

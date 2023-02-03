@@ -5384,7 +5384,6 @@ Keep all original rows and also all original values
     @doc(GLIMPSE_DOCSTRING, **series_sub_kwargs_glimpse)
     def glimpse(
             self,
-            buf: WriteBuffer[str] | None = None,
             index: bool | None = None,
             dtype: bool | None = None,
             isna: bool | None = None,
@@ -5393,6 +5392,8 @@ Keep all original rows and also all original values
             unique_values: bool | None = None,
             verbose: bool | None = None,
             emphasize: bool | None = None,
+            buf: WriteBuffer[str] | None = None,
+            width: int | None = None,
     ) -> None:
         if index is not None:
             warnings.warn(
@@ -5402,6 +5403,7 @@ Keep all original rows and also all original values
             )
         info = SeriesGlimpseInfo(
             data=self,
+            glimpse_width=width,
         )
         info.render(
             buf=buf,
@@ -5412,12 +5414,12 @@ Keep all original rows and also all original values
             unique_values=unique_values,
             verbose=verbose,
             emphasize=emphasize,
+            width=width,
         )
 
     @doc(GLIMPSE_DOCSTRING, **series_sub_kwargs_glimpse_unique)
     def glimpse_unique(
             self,
-            buf: WriteBuffer[str] | None = None,
             index: bool | None = None,
             dtype: bool | None = None,
             isna: bool | None = None,
@@ -5425,6 +5427,8 @@ Keep all original rows and also all original values
             nunique: bool | None = None,
             verbose: bool | None = None,
             emphasize: bool | None = None,
+            buf: WriteBuffer[str] | None = None,
+            width: int | None = None,
     ) -> None:
         """
         Series.glimpse_unique is an alias for Series.glimpse which
@@ -5440,6 +5444,7 @@ Keep all original rows and also all original values
             unique_values=True,
             verbose=verbose,
             emphasize=emphasize,
+            width=width,
         )
 
     def _replace_single(self, to_replace, method: str, inplace: bool, limit):
