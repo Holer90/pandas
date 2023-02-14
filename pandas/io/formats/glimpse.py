@@ -477,7 +477,7 @@ class BaseGlimpseInfo(ABC):
         self,
         *,
         buf: WriteBuffer[str] | None,
-        index: bool | None,
+        #index: bool | None, todo: removed index from abstract method
         dtype: bool | None,
         isna: bool | None,
         notna: bool | None,
@@ -639,7 +639,6 @@ class SeriesGlimpseInfo(BaseGlimpseInfo):
             unique_values: bool | None,
             verbose: bool | None,
             emphasize: bool | None,
-            index: bool | None,
     ) -> None:
         printer = SeriesGlimpsePrinter(
             info=self,

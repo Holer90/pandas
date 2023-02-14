@@ -5414,7 +5414,6 @@ Keep all original rows and also all original values
             unique_values=unique_values,
             verbose=verbose,
             emphasize=emphasize,
-            width=width,
         )
 
     @doc(GLIMPSE_DOCSTRING, **series_sub_kwargs_glimpse_unique)
