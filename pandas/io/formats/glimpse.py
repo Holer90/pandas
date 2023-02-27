@@ -34,11 +34,11 @@ if TYPE_CHECKING:
 frame_examples_sub = dedent(
     """\
     >>> int_values = [1, 2, 3, 1, 2, 3, 1, 2, 3]
-    >>> text_values = ['alpha', 'beta', 'gamma', 'delta', 'epsilon',  
+    >>> text_values = ['alpha', 'beta', 'gamma', 'delta', 'epsilon',
     ...                'zeta', 'eta', 'theta', 'iota']
     >>> float_values = [0.0, None, 0.25, None, 0.5, None, 0.75, None,
     ...                 1.0]
-    >>> df = pd.DataFrame({"int_col": int_values, "text_col": 
+    >>> df = pd.DataFrame({"int_col": int_values, "text_col":
     ...                   text_values, "float_col": float_values})
     >>> df.head(5)
        int_col text_col  float_col
@@ -47,51 +47,51 @@ frame_examples_sub = dedent(
     2        3    gamma       0.25
     3        1    delta        NaN
     4        2  epsilon       0.50
-    
+
     Prints a glimpse of each column and its dtypes.
-    
+
     >>> df.glimpse()
     DataFrame with 9 rows and 3 columns.
-    int_col    <int64>    1, 2, 3, 1, 2, 3, 1, 2, 3                                 
+    int_col    <int64>    1, 2, 3, 1, 2, 3, 1, 2, 3
     text_col   <object>   'alpha', 'beta', 'gamma', 'delta', 'epsilon', 'zeta',  ...
-    float_col  <float64>  0.0, nan, 0.25, nan, 0.5, nan, 0.75, nan, 1.0             
-    
+    float_col  <float64>  0.0, nan, 0.25, nan, 0.5, nan, 0.75, nan, 1.0
+
     Prints a glimpse of the unique values instead of the first values.
 
     >>> df.glimpse(unique_values=True)
     DataFrame with 9 rows and 3 columns.
-    int_col    <int64>    1, 2, 3                                                   
+    int_col    <int64>    1, 2, 3
     text_col   <object>   'alpha', 'beta', 'gamma', 'delta', 'epsilon', 'zeta',  ...
-    float_col  <float64>  0.0, nan, 0.25, 0.5, 0.75, 1.0                            
-    
-    Adds the null and non-null counts to the glimpse. This will change  
+    float_col  <float64>  0.0, nan, 0.25, 0.5, 0.75, 1.0
+
+    Adds the null and non-null counts to the glimpse. This will change
     to the verbose output format.
-    
+
     >>> df.glimpse(isna=True, notna=True)
     DataFrame with 9 rows and 3 columns.
-    Column     Dtype    Null    Non-null    Values                                                                   
-    ------     -----    ----    --------    ------                                                                   
-    int_col    int64    0 null  9 non-null  1, 2, 3, 1, 2, 3, 1, 2, 3               
+    Column     Dtype    Null    Non-null    Values
+    ------     -----    ----    --------    ------
+    int_col    int64    0 null  9 non-null  1, 2, 3, 1, 2, 3, 1, 2, 3
     text_col   object   0 null  9 non-null  'alpha', 'beta', 'gamma', 'delta', ' ...
     float_col  float64  4 null  5 non-null  0.0, nan, 0.25, nan, 0.5, nan, 0.75, ...
-    
+
     Adds the column index and the number of unique values to the
     glimpse.
-    
+
     >>> df.glimpse(index=True, nunique=True)
     DataFrame with 9 rows and 3 columns.
-     #   Column     Dtype    N-unique  Values                                                                   
-    ---  ------     -----    --------  ------                                                                   
-     0   int_col    int64    3 unique  1, 2, 3, 1, 2, 3, 1, 2, 3                    
+     #   Column     Dtype    N-unique  Values
+    ---  ------     -----    --------  ------
+     0   int_col    int64    3 unique  1, 2, 3, 1, 2, 3, 1, 2, 3
      1   text_col   object   9 unique  'alpha', 'beta', 'gamma', 'delta', 'epsil ...
      2   float_col  float64  5 unique  0.0, nan, 0.25, nan, 0.5, nan, 0.75, nan, ...
-    
-    Adds the null, non-null, and nunique counts while retaining the 
+
+    Adds the null, non-null, and nunique counts while retaining the
     non-verbose format.
-    
+
     >>> df.glimpse(isna=True, notna=True, nunique=True, verbose=False)
     DataFrame with 9 rows and 3 columns.
-    int_col    <int64>    (0/9)  |3|  1, 2, 3, 1, 2, 3, 1, 2, 3                     
+    int_col    <int64>    (0/9)  |3|  1, 2, 3, 1, 2, 3, 1, 2, 3
     text_col   <object>   (0/9)  |9|  'alpha', 'beta', 'gamma', 'delta', 'epsilo ...
     float_col  <float64>  (4/5)  |5|  0.0, nan, 0.25, nan, 0.5, nan, 0.75, nan,  ..."""
 )
@@ -101,9 +101,9 @@ frame_unique_examples_sub = dedent(
     >>> int_values = [1, 2, 3, 1, 2, 3, 1, 2, 3]
     >>> text_values = ['alpha', 'beta', 'gamma', 'delta', 'epsilon',
     ...                'zeta', 'eta', 'theta', 'iota']
-    >>> float_values = [0.0, None, 0.25, None, 0.5, None, 0.75, None, 
+    >>> float_values = [0.0, None, 0.25, None, 0.5, None, 0.75, None,
     ...                 1.0]
-    >>> df = pd.DataFrame({"int_col": int_values, "text_col": 
+    >>> df = pd.DataFrame({"int_col": int_values, "text_col":
     ...                   text_values, "float_col": float_values})
     >>> df.head(5)
        int_col text_col  float_col
@@ -117,18 +117,18 @@ frame_unique_examples_sub = dedent(
 
     >>> df.glimpse_unique()
     DataFrame with 9 rows and 3 columns.
-    int_col    <int64>    1, 2, 3                                                   
+    int_col    <int64>    1, 2, 3
     text_col   <object>   'alpha', 'beta', 'gamma', 'delta', 'epsilon', 'zeta',  ...
-    float_col  <float64>  0.0, nan, 0.25, 0.5, 0.75, 1.0    
+    float_col  <float64>  0.0, nan, 0.25, 0.5, 0.75, 1.0
 
-    Adds the null and non-null counts to the glimpse. This will change 
+    Adds the null and non-null counts to the glimpse. This will change
     to the verbose output format.
 
     >>> df.glimpse_unique(isna=True, notna=True)
     DataFrame with 9 rows and 3 columns.
-    Column     Dtype    Null    Non-null    Unique values                                                            
-    ------     -----    ----    --------    -------------                                                            
-    int_col    int64    0 null  9 non-null  1, 2, 3                                 
+    Column     Dtype    Null    Non-null    Unique values
+    ------     -----    ----    --------    -------------
+    int_col    int64    0 null  9 non-null  1, 2, 3
     text_col   object   0 null  9 non-null  'alpha', 'beta', 'gamma', 'delta', ' ...
     float_col  float64  4 null  5 non-null  0.0, nan, 0.25, 0.5, 0.75, 1.0"""
 )
@@ -137,7 +137,7 @@ series_examples_sub = dedent(
     """\
     >>> int_values = [1, 2, 3, 4, 5]
     >>> text_values = ['alpha', 'beta', 'gamma', 'alpha', 'beta']
-    >>> s = pd.Series(text_values, index=int_values, 
+    >>> s = pd.Series(text_values, index=int_values,
                       name='greek_letters')
 
     Prints a glimpse of the Series with its dtype.
@@ -157,7 +157,7 @@ series_unique_examples_sub = dedent(
     """\
     >>> int_values = [1, 2, 3, 4, 5]
     >>> text_values = ['alpha', 'beta', 'gamma', 'alpha', 'beta']
-    >>> s = pd.Series(text_values, index=int_values, 
+    >>> s = pd.Series(text_values, index=int_values,
                       name='greek_letters')
 
     Prints a glimpse of the Series with its dtype and unique values.
@@ -169,7 +169,7 @@ series_unique_examples_sub = dedent(
 
 frame_see_also_sub = dedent(
     """\
-    DataFrame.glimpse_unique: Print a transposed glimpse of a DataFrame 
+    DataFrame.glimpse_unique: Print a transposed glimpse of a DataFrame
         with its unique values.
     DataFrame.info: Print a concise summary of a DataFrame.
     DataFrame.describe: Generate descriptive statistics of DataFrame
@@ -178,7 +178,7 @@ frame_see_also_sub = dedent(
 
 frame_unique_see_also_sub = dedent(
     """\
-    DataFrame.glimpse: Print a transposed glimpse of a DataFrame with 
+    DataFrame.glimpse: Print a transposed glimpse of a DataFrame with
         its underlying data.
     DataFrame.info: Print a concise summary of a DataFrame.
     DataFrame.describe: Generate descriptive statistics of DataFrame
@@ -195,7 +195,7 @@ series_see_also_sub = dedent(
 
 series_unique_see_also_sub = dedent(
     """\
-    Series.glimpse: Print a transposed glimpse of a Series with its 
+    Series.glimpse: Print a transposed glimpse of a Series with its
         underlying data.
     Series.info: Print a concise summary of a Series.
     Series.describe: Generate descriptive statistics of Series."""
@@ -210,7 +210,8 @@ index_sub = dedent(
 unique_values_sub = dedent(
     """\
     unique_values: bool, optional
-        Whether to print a glimpse of the unique values instead of the first values.\n"""
+        Whether to print a glimpse of the unique values instead of the first \
+        values.\n"""
 )
 
 frame_sub_kwargs_glimpse = {
@@ -220,7 +221,7 @@ frame_sub_kwargs_glimpse = {
     "index_sub": index_sub,
     "unique_values_sub": unique_values_sub,
     "examples_sub": frame_examples_sub,
-    "see_also_sub": frame_see_also_sub
+    "see_also_sub": frame_see_also_sub,
 }
 
 series_sub_kwargs_glimpse = {
@@ -230,7 +231,7 @@ series_sub_kwargs_glimpse = {
     "index_sub": "",
     "unique_values_sub": unique_values_sub,
     "examples_sub": series_examples_sub,
-    "see_also_sub": series_see_also_sub
+    "see_also_sub": series_see_also_sub,
 }
 
 frame_sub_kwargs_glimpse_unique = {
@@ -240,7 +241,7 @@ frame_sub_kwargs_glimpse_unique = {
     "index_sub": index_sub,
     "unique_values_sub": "",
     "examples_sub": frame_unique_examples_sub,
-    "see_also_sub": frame_unique_see_also_sub
+    "see_also_sub": frame_unique_see_also_sub,
 }
 
 series_sub_kwargs_glimpse_unique = {
@@ -250,20 +251,20 @@ series_sub_kwargs_glimpse_unique = {
     "index_sub": "",
     "unique_values_sub": "",
     "examples_sub": series_unique_examples_sub,
-    "see_also_sub": series_unique_see_also_sub
+    "see_also_sub": series_unique_see_also_sub,
 }
 
 GLIMPSE_DOCSTRING = dedent(
     """
     Print a transposed glimpse of a {klass} with its {unique_sub}.
-    
+
     This method prints a transposed version of a {klass} with
-    columns running down the page, and a preview of the data running 
+    columns running down the page, and a preview of the data running
     across. Further, it can include extra information such as the index,
     dtype, null values, non-null values, and number of unique values.
-    
+
     ..versionadded:: 1.5.3
-    
+
     Parameters
     ----------
     {index_sub}dtype : bool, optional
@@ -279,7 +280,7 @@ GLIMPSE_DOCSTRING = dedent(
         the setting goes to false if only dtype is enabled otherwise it
         goes to true.
     emphasize: bool, optional
-        Whether to emphasize the optional information columns. By 
+        Whether to emphasize the optional information columns. By
         default, it is enabled if verbose is false.
     buf : writable buffer, defaults to sys.stdout
         Where to send the output. By default, the output is printed to
@@ -288,7 +289,7 @@ GLIMPSE_DOCSTRING = dedent(
     width : int, optional
         The width at which the output is trimmed. By default, the width
         is determined by the pandas display.width option.\
-        
+
     Returns
     -------
     None
@@ -357,7 +358,7 @@ def _trim_str(s: str, length: int) -> str:
     'pandas    '
     """
     if len(str(s)) > length:
-        if s[length-4:length] == "    ":
+        if s[length - 4 : length] == "    ":
             return str(s[:length])
         else:
             return f"{s[:length - 4]} ..."
@@ -365,14 +366,15 @@ def _trim_str(s: str, length: int) -> str:
         return str(s)
 
 
-
-def _format_body_line(s: str,
-                      col_widths: Sequence[int],
-                      spacing_width: int,
-                      start_col_idx: int,
-                      end_col_idx: int,
-                      bold: bool = False,
-                      italic: bool = False):
+def _format_body_line(
+    s: str,
+    col_widths: Sequence[int],
+    spacing_width: int,
+    start_col_idx: int,
+    end_col_idx: int,
+    bold: bool = False,
+    italic: bool = False,
+):
     """
     Add escape characters to one or more columns in the glimpse output
     to make it appear bold and/or italic.
@@ -400,31 +402,38 @@ def _format_body_line(s: str,
         The provided string with desired escape characters.
     """
 
-    start_pos = sum(col_widths[:start_col_idx]) \
-                + spacing_width * (start_col_idx)
-    end_pos = sum(col_widths[:end_col_idx]) \
-              + spacing_width * (end_col_idx - 1)
+    start_pos = sum(col_widths[:start_col_idx]) + spacing_width * (start_col_idx)
+    end_pos = sum(col_widths[:end_col_idx]) + spacing_width * (end_col_idx - 1)
 
     if (bold and italic) is True:
-        return s[:start_pos] + "\033[1;3m" + s[start_pos:end_pos] + "\033[0m" + s[end_pos:]
+        return (
+            s[:start_pos] + "\033[1;3m" + s[start_pos:end_pos] + "\033[0m" + s[end_pos:]
+        )
     elif bold is True:
-        return s[:start_pos] + "\033[1m" + s[start_pos:end_pos] + "\033[0m" + s[end_pos:]
+        return (
+            s[:start_pos] + "\033[1m" + s[start_pos:end_pos] + "\033[0m" + s[end_pos:]
+        )
     elif italic is True:
-        return s[:start_pos] + "\033[3m" + s[start_pos:end_pos] + "\033[0m" + s[end_pos:]
+        return (
+            s[:start_pos] + "\033[3m" + s[start_pos:end_pos] + "\033[0m" + s[end_pos:]
+        )
     else:
         return str(s)
 
-def _auto_format_body_line(s: str,
-                           col_widths: Sequence[int],
-                           spacing_width: int,
-                           bold: bool = False,
-                           italic: bool = False,
-                           include_index=None,
-                           include_dtype=None,
-                           include_null_count=None,
-                           include_non_null_count=None,
-                           include_nunique=None,
-                           is_verbose=None):
+
+def _auto_format_body_line(
+    s: str,
+    col_widths: Sequence[int],
+    spacing_width: int,
+    bold: bool = False,
+    italic: bool = False,
+    include_index=None,
+    include_dtype=None,
+    include_null_count=None,
+    include_non_null_count=None,
+    include_nunique=None,
+    is_verbose=None,
+):
     """
     Wrapper for _format_body_line, which automatically infers
     start_col_idx and end_col_idx.
@@ -462,19 +471,31 @@ def _auto_format_body_line(s: str,
 
     start_col_idx = 1 + include_index
 
-    end_col_idx = start_col_idx + include_dtype + include_nunique +\
-                  (include_null_count or include_non_null_count)
+    end_col_idx = (
+        start_col_idx
+        + include_dtype
+        + include_nunique
+        + (include_null_count or include_non_null_count)
+    )
 
-    # Edge-case with verbose=True, emphasize=True, isna=Ture, notna=True
-    if is_verbose is True and include_null_count is True and include_non_null_count is True:
+    # Edge-case with verbose=True, emphasize=True, isna=True, notna=True
+    if (
+        is_verbose is True
+        and include_null_count is True
+        and include_non_null_count is True
+    ):
         end_col_idx += 1
 
     if end_col_idx > start_col_idx:
-        return _format_body_line(s, col_widths, spacing_width,
-                                 start_col_idx=start_col_idx,
-                                 end_col_idx=end_col_idx,
-                                 italic=italic,
-                                 bold=bold)
+        return _format_body_line(
+            s,
+            col_widths,
+            spacing_width,
+            start_col_idx=start_col_idx,
+            end_col_idx=end_col_idx,
+            italic=italic,
+            bold=bold,
+        )
     else:
         return str(s)
 
@@ -563,8 +584,9 @@ class DataFrameGlimpseInfo(BaseGlimpseInfo):
         glimpse_width: int | None,
     ) -> None:
         self.data: DataFrame = data
-        self.glimpse_width = get_option("display.width") if \
-            glimpse_width is None else glimpse_width
+        self.glimpse_width = (
+            get_option("display.width") if glimpse_width is None else glimpse_width
+        )
 
     @property
     def dtypes(self) -> Iterable[Dtype]:
@@ -613,7 +635,7 @@ class DataFrameGlimpseInfo(BaseGlimpseInfo):
                 try:
                     s[col] = self.data[col].nunique()
                 except TypeError:
-                    s[col] = 'unhashable'
+                    s[col] = "unhashable"
         return s
 
     @property
@@ -627,10 +649,12 @@ class DataFrameGlimpseInfo(BaseGlimpseInfo):
 
         s = Series(dtype=str)
         for i, col in enumerate(self.ids):
-            s[f'{col}_{i}'] = ', '.join(map(
-                lambda x: pprint_thing(x, quote_strings=True),
-                self.data.iloc[:, i].head(number_of_elements_to_include).to_list()
-            ))[:self.glimpse_width]
+            s[f"{col}_{i}"] = ", ".join(
+                map(
+                    lambda x: pprint_thing(x, quote_strings=True),
+                    self.data.iloc[:, i].head(number_of_elements_to_include).to_list(),
+                )
+            )[: self.glimpse_width]
         return s
 
     @property
@@ -641,12 +665,14 @@ class DataFrameGlimpseInfo(BaseGlimpseInfo):
         s = Series(dtype=str)
         for i, col in enumerate(self.ids):
             try:
-                s[f'{col}_{i}'] = ', '.join(map(
-                    lambda x: pprint_thing(x, quote_strings=True),
-                    self.data.iloc[:, i].unique()
-                ))[:self.glimpse_width]
+                s[f"{col}_{i}"] = ", ".join(
+                    map(
+                        lambda x: pprint_thing(x, quote_strings=True),
+                        self.data.iloc[:, i].unique(),
+                    )
+                )[: self.glimpse_width]
             except TypeError:
-                s[f'{col}_{i}'] = 'unhashable'
+                s[f"{col}_{i}"] = "unhashable"
         return s
 
     @property
@@ -685,26 +711,23 @@ class SeriesGlimpseInfo(BaseGlimpseInfo):
     Class storing Series-specific info needed to glimpse.
     """
 
-    def __init__(
-        self,
-        data: Series,
-        glimpse_width: int | None
-    ) -> None:
+    def __init__(self, data: Series, glimpse_width: int | None) -> None:
         self.data: Series = data
-        self.glimpse_width = get_option("display.width") if \
-            glimpse_width is None else glimpse_width
+        self.glimpse_width = (
+            get_option("display.width") if glimpse_width is None else glimpse_width
+        )
 
     def render(
-            self,
-            *,
-            buf: WriteBuffer[str] | None,
-            dtype: bool | None,
-            isna: bool | None,
-            notna: bool | None,
-            nunique: bool | None,
-            unique_values: bool | None,
-            verbose: bool | None,
-            emphasize: bool | None,
+        self,
+        *,
+        buf: WriteBuffer[str] | None,
+        dtype: bool | None,
+        isna: bool | None,
+        notna: bool | None,
+        nunique: bool | None,
+        unique_values: bool | None,
+        verbose: bool | None,
+        emphasize: bool | None,
     ) -> None:
         printer = SeriesGlimpsePrinter(
             info=self,
@@ -748,10 +771,12 @@ class SeriesGlimpseInfo(BaseGlimpseInfo):
         number_of_elements_to_include = int(1 + self.glimpse_width / 3)
 
         s = Series(dtype=str)
-        s[self.data.name] = ', '.join(map(
+        s[self.data.name] = ", ".join(
+            map(
                 lambda x: pprint_thing(x, quote_strings=True),
-                self.data.head(number_of_elements_to_include).to_list()
-            ))[:self.glimpse_width]
+                self.data.head(number_of_elements_to_include).to_list(),
+            )
+        )[: self.glimpse_width]
         return s
 
     @property
@@ -760,10 +785,9 @@ class SeriesGlimpseInfo(BaseGlimpseInfo):
         from pandas import Series
 
         s = Series(dtype=str)
-        s[self.data.name] = ', '.join(map(
-                lambda x: pprint_thing(x, quote_strings=True),
-                self.data.unique()
-            ))[:self.glimpse_width]
+        s[self.data.name] = ", ".join(
+            map(lambda x: pprint_thing(x, quote_strings=True), self.data.unique())
+        )[: self.glimpse_width]
         return s
 
     @property
@@ -838,7 +862,9 @@ class DataFrameGlimpsePrinter(GlimpsePrinterAbstract):
         self.data = info.data
         self.include_index = self._initialize_index(include_index)
         self.include_dtype = self._initialize_dtype(include_dtype)
-        self.include_non_null_count = self._initialize_non_null_count(include_non_null_count)
+        self.include_non_null_count = self._initialize_non_null_count(
+            include_non_null_count
+        )
         self.include_null_count = self._initialize_null_count(include_null_count)
         self.include_nunique = self._initialize_nunique(include_nunique)
         self.unique_values = self._initialize_unique_values(unique_values)
@@ -854,10 +880,12 @@ class DataFrameGlimpsePrinter(GlimpsePrinterAbstract):
             return verbose
 
         # infer the default value of verbose if it was not provided.
-        if (self.include_index or
-            self.include_non_null_count or
-            self.include_null_count or
-            self.include_nunique) is False:
+        if (
+            self.include_index
+            or self.include_non_null_count
+            or self.include_null_count
+            or self.include_nunique
+        ) is False:
             return False
         else:
             return True
@@ -967,7 +995,9 @@ class SeriesGlimpsePrinter(GlimpsePrinterAbstract):
         self.data = info.data
         self.include_dtype = self._initialize_dtype(include_dtype)
         self.include_null_count = self._initialize_null_count(include_null_count)
-        self.include_non_null_count = self._initialize_non_null_count(include_non_null_count)
+        self.include_non_null_count = self._initialize_non_null_count(
+            include_non_null_count
+        )
         self.include_nunique = self._initialize_nunique(include_nunique)
         self.unique_values = self._initialize_unique_values(unique_values)
         self.verbose = self._initialize_verbose(verbose)
@@ -982,9 +1012,11 @@ class SeriesGlimpsePrinter(GlimpsePrinterAbstract):
             return verbose
 
         # infer the default value of verbose if it was not provided.
-        if (self.include_non_null_count or
-            self.include_null_count or
-            self.include_nunique) is False:
+        if (
+            self.include_non_null_count
+            or self.include_null_count
+            or self.include_nunique
+        ) is False:
             return False
         else:
             return True
@@ -1152,9 +1184,11 @@ class DataFrameTableBuilderAbstract(TableBuilderAbstract):
 
     def add_summary_line(self) -> None:
         """Add line containing type, and number of rows and columns."""
-        self._lines.append(f"{type(self.data).__name__} with "
-                           f"{len(self.data)} rows and "
-                           f"{len(self.data.columns)} columns.")
+        self._lines.append(
+            f"{type(self.data).__name__} with "
+            f"{len(self.data)} rows and "
+            f"{len(self.data.columns)} columns."
+        )
 
 
 class TableBuilderMixin(TableBuilderAbstract):
@@ -1238,7 +1272,8 @@ class TableBuilderMixin(TableBuilderAbstract):
             [
                 _put_str("-" * header_colwidth, gross_colwidth)
                 for header_colwidth, gross_colwidth in zip(
-                self.header_column_widths, self.gross_column_widths)
+                    self.header_column_widths, self.gross_column_widths
+                )
             ]
         )
         separator_line = _trim_str(separator_line, self.trim_width)
@@ -1282,7 +1317,8 @@ class TableBuilderMixin(TableBuilderAbstract):
             yield f"{count} non-null"
 
     def _gen_null_and_non_null_counts(self):
-        """Iterator with non-verbose string representation of null and non-null counts."""
+        """Iterator with non-verbose string representation of null and
+        non-null counts."""
         for null, non_null in zip(self.null_counts, self.non_null_counts):
             yield f"({null}/{non_null})"
 
@@ -1392,7 +1428,8 @@ class DataFrameTableBuilder(DataFrameTableBuilderAbstract, TableBuilderMixin):
             to_include.append(self._gen_dtypes(self.verbose))
 
         # Non-null and null count.
-        # Note: If verbose is False, then non-null and null counts can only be included together.
+        # Note: If verbose is False, then non-null and null counts can only be included
+        #  together.
         if self.verbose is True:
             if self.include_null_count is True:
                 to_include.append(self._gen_null_counts())
@@ -1411,24 +1448,24 @@ class DataFrameTableBuilder(DataFrameTableBuilderAbstract, TableBuilderMixin):
         else:
             to_include.append(self._gen_value_strings())
 
-        yield from zip(
-            *to_include
-        )
+        yield from zip(*to_include)
 
     def _emphasize_body_line(self, body_line) -> str:
         """Emphasize some columns based on verbosity and the columns."""
 
-        return _auto_format_body_line(body_line,
-                                      self.gross_column_widths,
-                                      len(self.SPACING),
-                                      italic=True,
-                                      bold=False,
-                                      include_index=self.include_index,
-                                      include_dtype=self.include_dtype,
-                                      include_null_count=self.include_null_count,
-                                      include_non_null_count=self.include_non_null_count,
-                                      include_nunique=self.include_nunique,
-                                      is_verbose=self.verbose)
+        return _auto_format_body_line(
+            body_line,
+            self.gross_column_widths,
+            len(self.SPACING),
+            italic=True,
+            bold=False,
+            include_index=self.include_index,
+            include_dtype=self.include_dtype,
+            include_null_count=self.include_null_count,
+            include_non_null_count=self.include_non_null_count,
+            include_nunique=self.include_nunique,
+            is_verbose=self.verbose,
+        )
 
     def _gen_indexes(self, verbose: bool) -> Iterator[str]:
         """Iterator with string representation of column index."""
@@ -1443,7 +1480,6 @@ class DataFrameTableBuilder(DataFrameTableBuilderAbstract, TableBuilderMixin):
         """Iterator with string representation of column names."""
         for col in self.ids:
             yield pprint_thing(col)
-
 
 
 class SeriesTableBuilderAbstract(TableBuilderAbstract):
@@ -1469,13 +1505,15 @@ class SeriesTableBuilderAbstract(TableBuilderAbstract):
     def add_summary_line(self) -> None:
         """Add line containing type, rows and columns."""
         self._lines.append(
-            f"{type(self.data).__name__} ({self.data.name}) with {len(self.data)} rows.")
+            f"{type(self.data).__name__} ({self.data.name}) with {len(self.data)} rows."
+        )
 
 
 class SeriesTableBuilder(SeriesTableBuilderAbstract, TableBuilderMixin):
     """
     Series glimpse table builder.
     """
+
     def __init__(
         self,
         *,
@@ -1510,7 +1548,6 @@ class SeriesTableBuilder(SeriesTableBuilderAbstract, TableBuilderMixin):
             self.add_separator_line()
         self.add_body_lines()
         self._lines.append("")
-
 
     @property
     def headers(self) -> Sequence[str]:
@@ -1565,26 +1602,24 @@ class SeriesTableBuilder(SeriesTableBuilderAbstract, TableBuilderMixin):
         else:
             to_include.append(self._gen_value_strings())
 
-        yield from zip(
-            *to_include
-        )
+        yield from zip(*to_include)
 
     def _emphasize_body_line(self, body_line) -> str:
         """Emphasize some columns based on verbosity and the columns."""
-        return _auto_format_body_line(body_line,
-                                      self.gross_column_widths,
-                                      len(self.SPACING),
-                                      italic=True,
-                                      bold=False,
-                                      include_index=False,
-                                      include_dtype=self.include_dtype,
-                                      include_null_count=self.include_null_count,
-                                      include_non_null_count=self.include_non_null_count,
-                                      include_nunique=self.include_nunique,
-                                      is_verbose=self.verbose)
-        return body_line
+        return _auto_format_body_line(
+            body_line,
+            self.gross_column_widths,
+            len(self.SPACING),
+            italic=True,
+            bold=False,
+            include_index=False,
+            include_dtype=self.include_dtype,
+            include_null_count=self.include_null_count,
+            include_non_null_count=self.include_non_null_count,
+            include_nunique=self.include_nunique,
+            is_verbose=self.verbose,
+        )
 
     def _gen_name(self) -> Iterator[str]:
         """Iterator with string representation of series name."""
         yield pprint_thing(self.data.name)
-
