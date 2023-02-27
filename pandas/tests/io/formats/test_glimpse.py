@@ -4,21 +4,13 @@ import textwrap
 import numpy as np
 import pytest
 
-from pandas.compat import (
-    IS64,
-    PYPY,
-)
-
 from pandas import (
     DataFrame,
     Series,
     option_context
 )
 
-from pandas.core.indexes.api import (
-    Index,
-    MultiIndex,
-)
+from pandas.core.indexes.api import MultiIndex
 
 @pytest.fixture
 def duplicate_columns_frame() -> DataFrame:
@@ -66,6 +58,8 @@ def test_glimpse_empty():
     result = buf.getvalue()
     expected = "DataFrame with 0 rows and 0 columns.\n"
     assert result == expected
+
+
 
 
 @pytest.mark.parametrize(
@@ -689,6 +683,34 @@ def test_glimpse_emphasize(request):
         2  petal_length  \x1b[3m<float64>  (0/150)  |43|\x1b[0m  1.4, 1.4, 1.3, 1.5 ...
         3  petal_width   \x1b[3m<float64>  (0/150)  |22|\x1b[0m  0.2, 0.2, 0.2, 0.2 ...
         4  species       \x1b[3m<object>   (0/150)  |3| \x1b[0m  'setosa', 'setosa' ...
+        """
+    )
+    assert result == expected
+
+
+def test_glimpse_emphasize_edge_case(request):
+    frame = request.getfixturevalue("iris_frame")
+    buf = StringIO()
+    frame.glimpse(buf=buf,
+                  index=True,
+                  dtype=True,
+                  nunique=False,
+                  isna=True,
+                  notna=True,
+                  verbose=True,
+                  width=65,
+                  emphasize=True)
+    result = buf.getvalue()
+    expected = textwrap.dedent(
+        """\
+        DataFrame with 150 rows and 5 columns.
+         #   Column        Dtype    Null    Non-null      Values         
+        ---  ------        -----    ----    --------      ------         
+         0   sepal_length  \x1b[3mfloat64  0 null  150 non-null\x1b[0m  5.1, 4.9, 4 ...
+         1   sepal_width   \x1b[3mfloat64  0 null  150 non-null\x1b[0m  3.5, 3.0, 3 ...
+         2   petal_length  \x1b[3mfloat64  0 null  150 non-null\x1b[0m  1.4, 1.4, 1 ...
+         3   petal_width   \x1b[3mfloat64  0 null  150 non-null\x1b[0m  0.2, 0.2, 0 ...
+         4   species       \x1b[3mobject   0 null  150 non-null\x1b[0m  'setosa', ' ...
         """
     )
     assert result == expected

@@ -210,7 +210,7 @@ index_sub = dedent(
 unique_values_sub = dedent(
     """\
     unique_values: bool, optional
-        Whether to print a glimpse of the unique instead of the first values.\n"""
+        Whether to print a glimpse of the unique values instead of the first values.\n"""
 )
 
 frame_sub_kwargs_glimpse = {
@@ -260,7 +260,7 @@ GLIMPSE_DOCSTRING = dedent(
     This method prints a transposed version of a {klass} with
     columns running down the page, and a preview of the data running 
     across. Further, it can include extra information such as the index,
-    dtype, null values, non-null values and number of unique values.
+    dtype, null values, non-null values, and number of unique values.
     
     ..versionadded:: 1.5.3
     
@@ -273,10 +273,10 @@ GLIMPSE_DOCSTRING = dedent(
     notna : bool, optional
         Whether to print the non-null count{columns_sub}.
     nunique: bool, optional
-        Whether to print the number of unique values
+        Whether to print the number of unique values.
     {unique_values_sub}verbose : bool, optional
         Whether to print the headers and count descriptions. By default,
-        the setting goes to false if only dtype is enabled and else it
+        the setting goes to false if only dtype is enabled otherwise it
         goes to true.
     emphasize: bool, optional
         Whether to emphasize the optional information columns. By 
@@ -323,9 +323,9 @@ def _put_str(s: str | Dtype, space: int) -> str:
 
     Examples
     --------
-    >>> pd.io.formats.info._put_str("panda", 6)
+    >>> pd.io.formats.glimpse._put_str("panda", 6)
     'panda '
-    >>> pd.io.formats.info._put_str("panda", 4)
+    >>> pd.io.formats.glimpse._put_str("panda", 4)
     'pand'
     """
     return str(s)[:space].ljust(space)
@@ -333,7 +333,7 @@ def _put_str(s: str | Dtype, space: int) -> str:
 
 def _trim_str(s: str, length: int) -> str:
     """
-    Crop a string from the right and adding ' ...' if its too long.
+    Crop a string from the right and append ' ...' if it is too long.
 
     Parameters
     ----------
@@ -345,15 +345,15 @@ def _trim_str(s: str, length: int) -> str:
     Returns
     -------
     str
-        String of length no longer than desired length
+        String of length no longer than desired length.
 
     Examples
     --------
-    >>> pd.io.formats.info._trim_str("red pandas", 10)
+    >>> pd.io.formats.glimpse._trim_str("red pandas", 10)
     'red pandas'
-    >>> pd.io.formats.info._trim_str("red pandas", 8)
+    >>> pd.io.formats.glimpse._trim_str("red pandas", 8)
     'red pa ...'
-    >>> pd.io.formats.info._trim_str("pandas    ", 8)
+    >>> pd.io.formats.glimpse._trim_str("pandas    ", 8)
     'pandas    '
     """
     if len(str(s)) > length:
@@ -390,14 +390,14 @@ def _format_body_line(s: str,
     end_col_idx : int
         The final column to be emphasized.
     bold : bool
-        Whether to make the string bold
+        Whether to make the string bold.
     italic : bool
-        Whether to make the string italic
+        Whether to make the string italic.
 
     Returns
     -------
     str
-        The provided string with desired escape characters
+        The provided string with desired escape characters.
     """
 
     start_pos = sum(col_widths[:start_col_idx]) \
@@ -414,6 +414,70 @@ def _format_body_line(s: str,
     else:
         return str(s)
 
+def _auto_format_body_line(s: str,
+                           col_widths: Sequence[int],
+                           spacing_width: int,
+                           bold: bool = False,
+                           italic: bool = False,
+                           include_index=None,
+                           include_dtype=None,
+                           include_null_count=None,
+                           include_non_null_count=None,
+                           include_nunique=None,
+                           is_verbose=None):
+    """
+    Wrapper for _format_body_line, which automatically infers
+    start_col_idx and end_col_idx.
+
+    Parameters
+    ----------
+    s : str
+        String to be formatted.
+    col_widths : Sequence[int]
+        The widths of the columns.
+    spacing_width : int
+        The width of the spacing.
+    bold : bool
+        Whether to make the string bold.
+    italic : bool
+        Whether to make the string italic.
+    include_index : bool
+        Whether index is included in the glimpse.
+    include_dtype : bool
+        Whether dtype is included in the glimpse.
+    include_null_count : bool
+        Whether null count is included in the glimpse.
+    include_non_null_count : bool
+        Whether non null count is included in the glimpse.
+    include_nunique : bool
+        Whether nunique is included in the glimpse.
+    is_verbose : bool
+        Whether the glimpse is in its verbose form.
+
+    Returns
+    -------
+    str
+        The provided string with desired escape characters.
+    """
+
+    start_col_idx = 1 + include_index
+
+    end_col_idx = start_col_idx + include_dtype + include_nunique +\
+                  (include_null_count or include_non_null_count)
+
+    # Edge-case with verbose=True, emphasize=True, isna=Ture, notna=True
+    if is_verbose is True and include_null_count is True and include_non_null_count is True:
+        end_col_idx += 1
+
+    if end_col_idx > start_col_idx:
+        return _format_body_line(s, col_widths, spacing_width,
+                                 start_col_idx=start_col_idx,
+                                 end_col_idx=end_col_idx,
+                                 italic=italic,
+                                 bold=bold)
+    else:
+        return str(s)
+
 
 class BaseGlimpseInfo(ABC):
     """
@@ -422,9 +486,9 @@ class BaseGlimpseInfo(ABC):
     Parameters
     ----------
     data : DataFrame or Series
-        Either dataframe or series.
+        Either Dataframe or Series.
     glimpse_width: int
-        The glimpse print width
+        The glimpse print width.
     """
 
     data: DataFrame | Series
@@ -439,23 +503,23 @@ class BaseGlimpseInfo(ABC):
         Returns
         -------
         dtypes : sequence
-            Dtype of each of the DataFrame's column(s)
+            Dtype of each of the DataFrame's column(s).
         """
 
     @property
     @abstractmethod
     def null_counts(self) -> Sequence[int]:
-        """Sequence of null counts for all column(s)"""
+        """Sequence of null counts for all column(s)."""
 
     @property
     @abstractmethod
     def non_null_counts(self) -> Sequence[int]:
-        """Sequence of non-null counts for all column(s)"""
+        """Sequence of non-null counts for all column(s)."""
 
     @property
     @abstractmethod
     def nunique_counts(self) -> Sequence[int | str]:
-        """Sequence of counts of unique element for all column(s)"""
+        """Sequence of counts of unique element for all column(s)."""
 
     @property
     @abstractmethod
@@ -477,7 +541,6 @@ class BaseGlimpseInfo(ABC):
         self,
         *,
         buf: WriteBuffer[str] | None,
-        #index: bool | None, todo: removed index from abstract method
         dtype: bool | None,
         isna: bool | None,
         notna: bool | None,
@@ -491,7 +554,7 @@ class BaseGlimpseInfo(ABC):
 
 class DataFrameGlimpseInfo(BaseGlimpseInfo):
     """
-    Class storing dataframe-specific info needed to glimpse.
+    Class storing DataFrame-specific info needed to glimpse.
     """
 
     def __init__(
@@ -529,17 +592,17 @@ class DataFrameGlimpseInfo(BaseGlimpseInfo):
 
     @property
     def non_null_counts(self) -> Sequence[int]:
-        """Sequence of non-null counts for all column(s)"""
+        """Sequence of non-null counts for all column(s)."""
         return self.data.count()
 
     @property
     def null_counts(self) -> Sequence[int]:
-        """Sequence of null counts for all column(s)"""
+        """Sequence of null counts for all column(s)."""
         return self.data.isna().sum()
 
     @property
     def nunique_counts(self) -> Sequence[int | str]:
-        """Sequence of counts of unique elements for all column(s)"""
+        """Sequence of counts of unique elements for all column(s)."""
         try:
             s = self.data.nunique()
         except TypeError:
@@ -555,9 +618,11 @@ class DataFrameGlimpseInfo(BaseGlimpseInfo):
 
     @property
     def value_strings(self) -> Sequence[str]:
+        """Sequence of strings representing the values."""
         from pandas import Series
 
-        # calculate max number of elements to include to speed runtime
+        # calculate max number of elements to include in the glimpse.
+        # this greatly reduces runtime.
         number_of_elements_to_include = int(1 + self.glimpse_width / 3)
 
         s = Series(dtype=str)
@@ -570,6 +635,7 @@ class DataFrameGlimpseInfo(BaseGlimpseInfo):
 
     @property
     def unique_value_strings(self) -> Sequence[str]:
+        """Sequence of strings representing the unique values."""
         from pandas import Series
 
         s = Series(dtype=str)
@@ -616,7 +682,7 @@ class DataFrameGlimpseInfo(BaseGlimpseInfo):
 
 class SeriesGlimpseInfo(BaseGlimpseInfo):
     """
-    Class storing series-specific info.
+    Class storing Series-specific info needed to glimpse.
     """
 
     def __init__(
@@ -654,25 +720,31 @@ class SeriesGlimpseInfo(BaseGlimpseInfo):
 
     @property
     def dtypes(self) -> Iterable[Dtype]:
+        """Sequence of dtypes for all column(s)."""
         return [self.data.dtypes]
 
     @property
     def non_null_counts(self) -> Sequence[int]:
+        """Sequence of non-null counts for all column(s)."""
         return [self.data.count()]
 
     @property
     def null_counts(self) -> Sequence[int]:
+        """Sequence of null counts for all column(s)."""
         return [self.data.isna().sum()]
 
     @property
     def nunique_counts(self) -> Sequence[int | str]:
+        """Sequence of counts of unique elements for all column(s)."""
         return [self.data.nunique()]
 
     @property
     def value_strings(self) -> Sequence[str]:
+        """Sequence of strings representing the values."""
         from pandas import Series
 
-        # calculate max number of elements to include to speed runtime
+        # calculate max number of elements to include in the glimpse.
+        # this greatly reduces runtime.
         number_of_elements_to_include = int(1 + self.glimpse_width / 3)
 
         s = Series(dtype=str)
@@ -684,6 +756,7 @@ class SeriesGlimpseInfo(BaseGlimpseInfo):
 
     @property
     def unique_value_strings(self) -> Sequence[str]:
+        """Sequence of strings representing the unique values."""
         from pandas import Series
 
         s = Series(dtype=str)
@@ -700,14 +773,14 @@ class SeriesGlimpseInfo(BaseGlimpseInfo):
 
 class GlimpsePrinterAbstract:
     """
-    Class for printing dataframe or series glimpse.
+    Class for printing DataFrame or Series glimpse.
     """
 
     def to_buffer(self, buf: WriteBuffer[str] | None = None) -> None:
         """Save dataframe glimpse into buffer."""
         table_builder = self._create_table_builder()
         lines = table_builder.get_lines()
-        if buf is None:  # pragma: no cover
+        if buf is None:
             buf = sys.stdout
         fmt.buffer_put_lines(buf, lines)
 
@@ -718,7 +791,10 @@ class GlimpsePrinterAbstract:
 
 class DataFrameGlimpsePrinter(GlimpsePrinterAbstract):
     """
-    Class for printing dataframe glimpse.
+    Class for printing DataFrame glimpse.
+
+    This class outputs the glimpse to desired buffer and interprets
+    configuration inputs from the user.
 
     Parameters
     ----------
@@ -738,7 +814,7 @@ class DataFrameGlimpsePrinter(GlimpsePrinterAbstract):
         Whether to show the unique values.
     verbose: bool, optional
         Whether to print the headers and units. By default, the
-        setting goes to false if only dtype is enabled and else
+        setting goes to false if only dtype is enabled otherwise
         it goes to true.
     emphasize: bool, optional
         Whether to emphasize the columns between the column name
@@ -774,16 +850,17 @@ class DataFrameGlimpsePrinter(GlimpsePrinterAbstract):
         return self.info.is_empty
 
     def _initialize_verbose(self, verbose: bool | None) -> bool:
-        if verbose is None:
-            if (self.include_index or
-                    self.include_non_null_count or
-                    self.include_null_count or
-                    self.include_nunique) is False:
-                return False
-            else:
-                return True
-        else:
+        if verbose is not None:
             return verbose
+
+        # infer the default value of verbose if it was not provided.
+        if (self.include_index or
+            self.include_non_null_count or
+            self.include_null_count or
+            self.include_nunique) is False:
+            return False
+        else:
+            return True
 
     def _initialize_emphasize(self, emphasize: bool | None) -> bool:
         if emphasize is None:
@@ -848,6 +925,9 @@ class DataFrameGlimpsePrinter(GlimpsePrinterAbstract):
 class SeriesGlimpsePrinter(GlimpsePrinterAbstract):
     """Class for printing series info.
 
+    This class outputs the glimpse to desired buffer and interprets
+    configuration inputs from the user.
+
     Parameters
     ----------
     info : SeriesGlimpseInfo
@@ -864,7 +944,7 @@ class SeriesGlimpsePrinter(GlimpsePrinterAbstract):
         Whether to show the unique values.
     verbose: bool, optional
         Whether to print the headers and units. By default, the
-        setting goes to false if only dtype is enabled and else
+        setting goes to false if only dtype is enabled otherwise
         it goes to true.
     emphasize: bool, optional
         Whether to emphasize the columns between the column name
@@ -898,13 +978,16 @@ class SeriesGlimpsePrinter(GlimpsePrinterAbstract):
         return self.info.is_empty
 
     def _initialize_verbose(self, verbose: bool | None) -> bool:
-        if verbose is None:
-            if (self.include_non_null_count or self.include_null_count or self.include_nunique) is False:
-                return False
-            else:
-                return True
-        else:
+        if verbose is not None:
             return verbose
+
+        # infer the default value of verbose if it was not provided.
+        if (self.include_non_null_count or
+            self.include_null_count or
+            self.include_nunique) is False:
+            return False
+        else:
+            return True
 
     def _initialize_emphasize(self, emphasize: bool | None) -> bool:
         if emphasize is None:
@@ -968,12 +1051,21 @@ class SeriesGlimpsePrinter(GlimpsePrinterAbstract):
 class TableBuilderAbstract(ABC):
     """
     Abstract builder for glimpse table.
+
+    This class contains the coarse building blocks needed to generate
+    the glimpse.
+
+    Parameters
+    ----------
+    info : BaseGlimpseInfo
+        Instance of either DataFrameGlimpseInfo or SeriesGlimpseInfo.
     """
 
     _lines: list[str]
     info: BaseGlimpseInfo
 
     def get_lines(self) -> list[str]:
+        """Construct each line to print in the glimpse."""
         self._lines = []
         if self.is_empty is True:
             self._fill_empty_glimpse()
@@ -987,7 +1079,6 @@ class TableBuilderAbstract(ABC):
 
     @property
     def dtypes(self) -> Iterable[Dtype]:
-        """Dtypes of each of the DataFrame's columns."""
         return self.info.dtypes
 
     @property
@@ -1021,7 +1112,7 @@ class TableBuilderAbstract(ABC):
 
     def _fill_empty_glimpse(self) -> None:
         """
-        Add lines to the glimpse table, pertaining to empty dataframe.
+        Add lines to the glimpse table, pertaining to empty DataFrames.
         """
         self.add_summary_line()
         self._lines.append("")
@@ -1030,13 +1121,16 @@ class TableBuilderAbstract(ABC):
     def _fill_non_empty_glimpse(self) -> None:
         """
         Add lines to the glimpse table, pertaining to non-empty
-        dataframe or series.
+        DataFrames or Series.
         """
 
 
 class DataFrameTableBuilderAbstract(TableBuilderAbstract):
     """
     Abstract builder for dataframe glimpse table.
+
+    This class contains the coarse building blocks needed to generate
+    the glimpse.
 
     Parameters
     ----------
@@ -1049,16 +1143,15 @@ class DataFrameTableBuilderAbstract(TableBuilderAbstract):
 
     @property
     def data(self) -> DataFrame:
-        """DataFrame."""
         return self.info.data
 
     @property
     def ids(self) -> Index:
-        """Dataframe columns."""
+        """The Dataframe columns."""
         return self.info.ids
 
     def add_summary_line(self) -> None:
-        """Add line containing type, rows and columns."""
+        """Add line containing type, and number of rows and columns."""
         self._lines.append(f"{type(self.data).__name__} with "
                            f"{len(self.data)} rows and "
                            f"{len(self.data.columns)} columns.")
@@ -1067,6 +1160,9 @@ class DataFrameTableBuilderAbstract(TableBuilderAbstract):
 class TableBuilderMixin(TableBuilderAbstract):
     """
     Mixin for glimpse output.
+
+    This class generates each element in the glimpse by using
+    information from DataFrame- or SeriesTableBuilderAbstract.
     """
 
     SPACING: str = " " * 2
@@ -1085,11 +1181,11 @@ class TableBuilderMixin(TableBuilderAbstract):
     @property
     @abstractmethod
     def headers(self) -> Sequence[str]:
-        """Headers names of the columns in table."""
+        """Header names of the columns in table."""
 
     @property
     def header_column_widths(self) -> Sequence[int]:
-        """Widths of header columns (only titles)."""
+        """Widths of header columns (only the titles)."""
         return [len(col) for col in self.headers]
 
     def _get_gross_column_widths(self) -> Sequence[int]:
@@ -1115,7 +1211,7 @@ class TableBuilderMixin(TableBuilderAbstract):
     @abstractmethod
     def _gen_rows(self) -> Iterator[Sequence[str]]:
         """
-        Generator function yielding rows content.
+        Generator function yielding the content of each row.
 
         Each element represents a row comprising a sequence of strings.
         """
@@ -1123,7 +1219,8 @@ class TableBuilderMixin(TableBuilderAbstract):
     @abstractmethod
     def _emphasize_body_line(self, body_line) -> str:
         """
-        Emphasize some columns based on verbosity and the columns.
+        Emphasize some columns based on verbosity and the included
+        columns.
         """
 
     def add_header_line(self) -> None:
@@ -1157,7 +1254,9 @@ class TableBuilderMixin(TableBuilderAbstract):
             )
             body_line = _trim_str(body_line, self.trim_width)
 
-            # Italicize the extra columns
+            # italicize the extra columns.
+            # Note: this needs to happen after the gross width have been
+            #  used to ensure consistent "visual" width.
             if self.emphasize is True:
                 body_line = self._emphasize_body_line(body_line)
 
@@ -1170,7 +1269,6 @@ class TableBuilderMixin(TableBuilderAbstract):
                 yield pprint_thing(dtype)
         else:
             for dtype in self.dtypes:
-                #yield _format_str(f"<{pprint_thing(dtype)}>", italic=True)
                 yield f"<{pprint_thing(dtype)}>"
 
     def _gen_null_counts(self) -> Iterator[str]:
@@ -1184,9 +1282,8 @@ class TableBuilderMixin(TableBuilderAbstract):
             yield f"{count} non-null"
 
     def _gen_null_and_non_null_counts(self):
-        """Iterator with non-verbose string representation of non and non-null counts."""
+        """Iterator with non-verbose string representation of null and non-null counts."""
         for null, non_null in zip(self.null_counts, self.non_null_counts):
-            #yield _format_str(f"({null}/{non_null})", italic=True)
             yield f"({null}/{non_null})"
 
     def _gen_nunique_counts(self, verbose: bool) -> Iterator[str]:
@@ -1199,7 +1296,6 @@ class TableBuilderMixin(TableBuilderAbstract):
                     yield f"{n}"
         else:
             for n in self.nunique_counts:
-                #yield _format_str(f"|{n}|", italic=True)
                 yield f"|{n}|"
 
     def _gen_value_strings(self) -> Iterator[str]:
@@ -1215,7 +1311,7 @@ class TableBuilderMixin(TableBuilderAbstract):
 
 class DataFrameTableBuilder(DataFrameTableBuilderAbstract, TableBuilderMixin):
     """
-    Dataframe glimpse table builder.
+    DataFrame glimpse table builder.
     """
 
     def __init__(
@@ -1245,7 +1341,9 @@ class DataFrameTableBuilder(DataFrameTableBuilderAbstract, TableBuilderMixin):
         self.gross_column_widths: Sequence[int] = self._get_gross_column_widths()
 
     def _fill_non_empty_glimpse(self) -> None:
-        """Add lines to the glimpse table, pertaining to non-empty dataframe."""
+        """
+        Add lines to the glimpse table.
+        """
         self.add_summary_line()
         if self.verbose is True:
             self.add_header_line()
@@ -1255,33 +1353,26 @@ class DataFrameTableBuilder(DataFrameTableBuilderAbstract, TableBuilderMixin):
 
     @property
     def headers(self) -> Sequence[str]:
-        """Headers names of the columns in table."""
+        """Header names of the columns in table."""
         header_list = list()
 
-       # Line number
         if self.include_index is True:
             header_list.append(" # ")
 
-        # Column
         header_list.append("Column")
 
-        # Dtype
         if self.include_dtype is True:
             header_list.append("Dtype")
 
-        # Null count
         if self.include_null_count is True:
             header_list.append("Null")
 
-        # Non-null count
         if self.include_non_null_count is True:
             header_list.append("Non-null")
 
-        # N-unique
         if self.include_nunique is True:
             header_list.append("N-unique")
 
-        # Unique values
         if self.unique_values is True:
             header_list.append("Unique values")
         else:
@@ -1292,14 +1383,11 @@ class DataFrameTableBuilder(DataFrameTableBuilderAbstract, TableBuilderMixin):
     def _gen_rows(self) -> Iterator[Sequence[str]]:
         to_include = list()
 
-        # Indexes
         if self.include_index is True:
             to_include.append(self._gen_indexes(self.verbose))
 
-        # Columns
         to_include.append(self._gen_columns())
 
-        # Dtype
         if self.include_dtype is True:
             to_include.append(self._gen_dtypes(self.verbose))
 
@@ -1315,11 +1403,9 @@ class DataFrameTableBuilder(DataFrameTableBuilderAbstract, TableBuilderMixin):
             if (self.include_non_null_count or self.include_null_count) is True:
                 to_include.append(self._gen_null_and_non_null_counts())
 
-        # N-unique
         if self.include_nunique is True:
             to_include.append(self._gen_nunique_counts(self.verbose))
 
-        # Values
         if self.unique_values is True:
             to_include.append(self._gen_unique_value_strings())
         else:
@@ -1331,19 +1417,18 @@ class DataFrameTableBuilder(DataFrameTableBuilderAbstract, TableBuilderMixin):
 
     def _emphasize_body_line(self, body_line) -> str:
         """Emphasize some columns based on verbosity and the columns."""
-        # todo: fix this code..?
-        start_col_idx = 1 + self.include_index
-        end_col_idx = start_col_idx + self.include_dtype + \
-                      (self.include_null_count or self.include_non_null_count) + \
-                      self.include_nunique
 
-        if end_col_idx > start_col_idx:
-            body_line = _format_body_line(body_line, self.gross_column_widths, len(self.SPACING),
-                                          start_col_idx=start_col_idx,
-                                          end_col_idx=end_col_idx,
-                                          italic=True,
-                                          bold=False)
-        return body_line
+        return _auto_format_body_line(body_line,
+                                      self.gross_column_widths,
+                                      len(self.SPACING),
+                                      italic=True,
+                                      bold=False,
+                                      include_index=self.include_index,
+                                      include_dtype=self.include_dtype,
+                                      include_null_count=self.include_null_count,
+                                      include_non_null_count=self.include_non_null_count,
+                                      include_nunique=self.include_nunique,
+                                      is_verbose=self.verbose)
 
     def _gen_indexes(self, verbose: bool) -> Iterator[str]:
         """Iterator with string representation of column index."""
@@ -1363,7 +1448,10 @@ class DataFrameTableBuilder(DataFrameTableBuilderAbstract, TableBuilderMixin):
 
 class SeriesTableBuilderAbstract(TableBuilderAbstract):
     """
-    Abstract builder for series glimpse table.
+    Abstract builder for Series glimpse table.
+
+    This class contains the coarse building blocks needed to generate
+    the glimpse.
 
     Parameters
     ----------
@@ -1376,7 +1464,6 @@ class SeriesTableBuilderAbstract(TableBuilderAbstract):
 
     @property
     def data(self) -> Series:
-        """Series."""
         return self.info.data
 
     def add_summary_line(self) -> None:
@@ -1389,7 +1476,6 @@ class SeriesTableBuilder(SeriesTableBuilderAbstract, TableBuilderMixin):
     """
     Series glimpse table builder.
     """
-
     def __init__(
         self,
         *,
@@ -1415,7 +1501,9 @@ class SeriesTableBuilder(SeriesTableBuilderAbstract, TableBuilderMixin):
         self.gross_column_widths: Sequence[int] = self._get_gross_column_widths()
 
     def _fill_non_empty_glimpse(self) -> None:
-        """Add lines to the glimpse table, pertaining to non-empty series."""
+        """
+        Add lines to the glimpse table.
+        """
         self.add_summary_line()
         if self.verbose is True:
             self.add_header_line()
@@ -1426,26 +1514,21 @@ class SeriesTableBuilder(SeriesTableBuilderAbstract, TableBuilderMixin):
 
     @property
     def headers(self) -> Sequence[str]:
-        """Headers names of the columns in table."""
+        """Header names of the columns in table."""
         header_list = ["Name"]
 
-        # Dtype
         if self.include_dtype is True:
             header_list.append("Dtype")
 
-        # Non-null count
         if self.include_non_null_count is True:
             header_list.append("Non-null")
 
-        # Null count
         if self.include_null_count is True:
             header_list.append("Null")
 
-        # N-unique
         if self.include_nunique is True:
             header_list.append("N-unique")
 
-        # Unique values
         if self.unique_values is True:
             header_list.append("Unique values")
         else:
@@ -1456,10 +1539,8 @@ class SeriesTableBuilder(SeriesTableBuilderAbstract, TableBuilderMixin):
     def _gen_rows(self) -> Iterator[Sequence[str]]:
         to_include = list()
 
-        # Name
         to_include.append(self._gen_name())
 
-        # Dtype
         if self.include_dtype is True:
             to_include.append(self._gen_dtypes(self.verbose))
 
@@ -1476,11 +1557,9 @@ class SeriesTableBuilder(SeriesTableBuilderAbstract, TableBuilderMixin):
             if (self.include_non_null_count or self.include_null_count) is True:
                 to_include.append(self._gen_null_and_non_null_counts())
 
-        # N-unique
         if self.include_nunique is True:
             to_include.append(self._gen_nunique_counts(self.verbose))
 
-        # Values
         if self.unique_values is True:
             to_include.append(self._gen_unique_value_strings())
         else:
@@ -1492,127 +1571,20 @@ class SeriesTableBuilder(SeriesTableBuilderAbstract, TableBuilderMixin):
 
     def _emphasize_body_line(self, body_line) -> str:
         """Emphasize some columns based on verbosity and the columns."""
-        # todo: also fix this code!
-        start_col_idx = 1
-        end_col_idx = start_col_idx + self.include_dtype + \
-                      (self.include_null_count or self.include_non_null_count) + \
-                      self.include_nunique
-
-        if end_col_idx > start_col_idx:
-            body_line = _format_body_line(body_line, self.gross_column_widths, len(self.SPACING),
-                                          start_col_idx=start_col_idx,
-                                          end_col_idx=end_col_idx,
-                                          italic=True,
-                                          bold=False)
+        return _auto_format_body_line(body_line,
+                                      self.gross_column_widths,
+                                      len(self.SPACING),
+                                      italic=True,
+                                      bold=False,
+                                      include_index=False,
+                                      include_dtype=self.include_dtype,
+                                      include_null_count=self.include_null_count,
+                                      include_non_null_count=self.include_non_null_count,
+                                      include_nunique=self.include_nunique,
+                                      is_verbose=self.verbose)
         return body_line
 
     def _gen_name(self) -> Iterator[str]:
         """Iterator with string representation of series name."""
         yield pprint_thing(self.data.name)
-
-
-# todo: should _put_str and _trim_str be merged ? (it would make _trim_str less convoluted)
-# todo: fix verbose=True, emphasize=True, isna=True, notna=True case (by fixing the hard-coded counting...)
-# todo: fix documentation for glimpse_unique()
-# todo: give glimpse_unique the isnull/notnull treatment. (And add the {unique_version} to the kwargs-dicts)
-# todo: remove references to _format_str
-# todo: write tests...
-
-
-# non-verbose ideas
-# cut  <float64>  'Ideal', 'Premium', 'Good', 'Premium', 'Good', 'Very Good', ...
-# cut  <float64>  (5u)  'Ideal', 'Premium', 'Good', 'Premium', 'Good', 'Very  ...
-# cut  <float64>  <0/53940>  <5>  'Ideal', 'Premium', 'Good', 'Premium', 'Goo ...
-# cut  <float64>  [0/53940]  [5]  'Ideal', 'Premium', 'Good', 'Premium', 'Goo ...
-# cut  <float64>  |∅|=0  |¬∅|=53940  |∩|=5  'Ideal', 'Premium', 'Good', 'Prem ...
-# cut  <float64>  ∅0  ¬∅53940  ∩5  'Ideal', 'Premium', 'Good', 'Premium', 'Go ...
-# cut  <float64>  ∅0/53940  ∩5  'Ideal', 'Premium', 'Good', 'Premium', 'Good' ...
-# cut  <float64>  ∅0/53940  ∩5  ∩{}='Ideal', 'Premium', 'Good', 'Very Good',  ...
-
-
-# ===== FUTURE IDEAS ===================================================
-# todo: implement pandas get_options (e.g. display.glimpse.defaults: ['dtype'])
-# todo: add show_counts option to enable all the counts (this would be handled in frame.py and series.py)
-
-
-
-
-# ===== UNUSED CODE ====================================================
-# todo: remove everything below here
-
-@property
-def nunique_counts(self) -> Sequence[int | str]:
-    # NOTE: this will NOT throw an error if the series is not hashable.
-    try:
-        return [self.data.nunique()]
-    except TypeError:
-        return ['unhashable']
-
-
-def _format_str(s: str, bold: bool = False, italic: bool = False) -> str:
-    """
-    Add escape characters to a string to make it bold and/or italic in
-    the output.
-
-    Parameters
-    ----------
-    s : str
-        String to be formatted.
-    bold : bool
-        Whether to make the string bold
-    italic : bool
-        Whether to make the string italic
-
-    Returns
-    -------
-    str
-        The provided string with desired escape characters
-
-    Examples
-    --------
-    >>> pd.io.formats.info._format_str("panda", bold=True)
-    '\033[1mpanda\033[0m'
-    >>> pd.io.formats.info._format_str("panda", italic=True)
-    '\033[3mpanda\033[0m'
-    >>> pd.io.formats.info._format_str("panda", bold=True, italic=True)
-    '\033[1;3mpanda\033[0m'
-    """
-    if (bold and italic) is True:
-        return "\033[1;3m" + str(s) + "\033[0m"
-    elif bold is True:
-        return "\033[1m" + str(s) + "\033[0m"
-    elif italic is True:
-        return "\033[3m" + str(s) + "\033[0m"
-    else:
-        return str(s)
-
-
-
-'''
-    @doc(NDFrame.isna, klass=_shared_doc_kwargs["klass"])
-    def isna(self) -> DataFrame:
-        result = self._constructor(self._mgr.isna(func=isna))
-        return result.__finalize__(self, method="isna")
-
-    @doc(NDFrame.isna, klass=_shared_doc_kwargs["klass"])
-    def isnull(self) -> DataFrame:
-        """
-        DataFrame.isnull is an alias for DataFrame.isna.
-        """
-        return self.isna()
-
-    @doc(NDFrame.notna, klass=_shared_doc_kwargs["klass"])
-    def notna(self) -> DataFrame:
-        return ~self.isna()
-
-    @doc(NDFrame.notna, klass=_shared_doc_kwargs["klass"])
-    def notnull(self) -> DataFrame:
-        """
-        DataFrame.notnull is an alias for DataFrame.notna.
-        """
-        return ~self.isna()
-'''
-
-
-
 
